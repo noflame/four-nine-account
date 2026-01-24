@@ -2,7 +2,7 @@
     "name": "lin-fan-monorepo",
     "private": true,
     "scripts": {
-        "dev": "pnpm -r dev",
+        "dev": "pnpm -r --parallel dev",
         "build": "pnpm -r build",
         "lint": "pnpm -r lint"
     },
@@ -15,6 +15,10 @@
             "esbuild",
             "sharp",
             "workerd"
+        ],
+        "ignoredBuiltDependencies": [
+            "@firebase/util",
+            "protobufjs"
         ]
     }
 }
