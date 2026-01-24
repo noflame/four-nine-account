@@ -5,7 +5,7 @@
     "types": "./src/index.ts",
     "scripts": {
         "generate": "drizzle-kit generate:sqlite",
-        "migrate": "drizzle-kit migrate"
+        "migrate": "wrangler d1 migrations apply lin-fan-db --local --config ../../apps/api/wrangler.toml"
     },
     "dependencies": {
         "drizzle-orm": "^0.29.3",

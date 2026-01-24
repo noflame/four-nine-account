@@ -4,4 +4,5 @@ compatibility_date = "2023-12-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lin-fan-db"
-database_id = "xxxx-xxxx-xxxx-xxxx" # Placeholder
+database_id = "da046e95-77d5-476b-adb2-39058279b5f5"
+migrations_dir = "../../packages/db/drizzle"
