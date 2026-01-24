@@ -5,7 +5,7 @@ export default {
     out: './drizzle',
     driver: 'd1',
     dbCredentials: {
-        wranglerConfigPath: 'drizzle.config.json',
+        wranglerConfigPath: '../../apps/api/wrangler.toml',
         dbName: 'lin-fan-db',
     },
 } satisfies Config;
