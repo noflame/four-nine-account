@@ -28,17 +28,27 @@ function Dashboard() {
     );
 }
 
+import Layout from '@/components/layout';
+
 function App() {
     return (
         <Router>
             <AuthProvider>
                 <Routes>
                     <Route path="/login" element={<Login />} />
-                    <Route path="/" element={
+
+                    {/* Protected Routes wrapped in Layout */}
+                    <Route element={
                         <ProtectedRoute>
-                            <Dashboard />
+                            <Layout />
                         </ProtectedRoute>
-                    } />
+                    }>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/assets" element={<div>Assets Page (Coming Soon)</div>} />
+                        <Route path="/cards" element={<div>Credit Cards (Coming Soon)</div>} />
+                        <Route path="/stocks" element={<div>Investments (Coming Soon)</div>} />
+                        <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
+                    </Route>
                 </Routes>
             </AuthProvider>
         </Router>
