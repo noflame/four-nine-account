@@ -62,3 +62,24 @@ export const stockPrices = sqliteTable('stock_prices', {
         pk: primaryKey({ columns: [table.ticker, table.date] }),
     };
 });
+
+// Categories Table
+export const categories = sqliteTable('categories', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    type: text('type', { enum: ['income', 'expense'] }).notNull(),
+    icon: text('icon'), // Optional icon identifier
+});
+
+// Transactions Table
+export const transactions = sqliteTable('transactions', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    date: integer('date', { mode: 'timestamp' }).notNull(),
+    amount: integer('amount').notNull(), // x10000, always positive
+    description: text('description').notNull(),
+    categoryId: integer('category_id').references(() => categories.id),
+    sourceAccountId: integer('source_account_id').references(() => accounts.id),
+    destinationAccountId: integer('destination_account_id').references(() => accounts.id),
+    userId: integer('user_id').references(() => users.id).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+});

@@ -16,6 +16,9 @@
 - **Backend**: Hono
   - 部署於 Cloudflare Workers / Pages Functions。
   - 使用 Hono RPC 實現型別安全。
+- **Auth**: Firebase Authentication
+  - 提供 Google Sign-In 與 Email/Password 登入。
+  - 使用 Firebase SDK 進行前端身分驗證，後端透過 ID Token 驗證。
 - **Database**: Cloudflare D1 (SQLite)
 - **ORM**: Drizzle ORM
 - **Stock Data**: `yahoo-finance2`
@@ -24,6 +27,8 @@
 ## 3. 功能需求 (Functional Requirements)
 
 ### 3.1 權限與使用者管理 (RBAC)
+- **身分驗證**：採用 **Firebase Authentication** 處理登入與註冊。
+- **角色授權**：使用者登入後，系統根據資料庫 `users` table 中的 `role` 欄位決定權限。
 | 角色 | 權限描述 |
 | :--- | :--- |
 | **Admin (家長)** | 完全控制，可見全家資產。 |
