@@ -44,6 +44,13 @@ export default function AssetsPage() {
 
     useEffect(() => {
         fetchAccounts();
+
+        const handleUpdate = () => fetchAccounts();
+        window.addEventListener('transaction-updated', handleUpdate);
+
+        return () => {
+            window.removeEventListener('transaction-updated', handleUpdate);
+        };
     }, [user]);
 
     const handleSubmit = async (e: React.FormEvent) => {

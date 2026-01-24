@@ -4,6 +4,7 @@ import Login from '@/pages/login';
 import Layout from '@/components/layout';
 import AssetsPage from '@/pages/assets';
 import ColorPreview from '@/pages/color-preview';
+import SettingsPage from '@/pages/settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -49,7 +50,7 @@ function App() {
                         <Route path="/color-preview" element={<ColorPreview />} />
                         <Route path="/cards" element={<div>Credit Cards (Coming Soon)</div>} />
                         <Route path="/stocks" element={<div>Investments (Coming Soon)</div>} />
-                        <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
+                        <Route path="/settings" element={<SettingsPage />} />
                     </Route>
                 </Routes>
             </AuthProvider>

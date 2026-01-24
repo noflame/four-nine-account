@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import usersRoute from './routes/users';
 import assetsRoute from './routes/assets';
+import categoriesRoute from './routes/categories';
+import transactionsRoute from './routes/transactions';
 
 type Bindings = {
     DB: D1Database;
@@ -17,7 +19,9 @@ app.get('/', (c) => {
 
 const routes = app
     .route('/users', usersRoute)
-    .route('/assets', assetsRoute);
+    .route('/assets', assetsRoute)
+    .route('/categories', categoriesRoute)
+    .route('/transactions', transactionsRoute);
 
 export type AppType = typeof routes;
 
