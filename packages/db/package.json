@@ -1,0 +1,18 @@
+{
+    "name": "@lin-fan/db",
+    "version": "0.0.0",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "scripts": {
+        "generate": "drizzle-kit generate",
+        "migrate": "drizzle-kit migrate"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.29.3",
+        "postgres": "^3.4.3"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.20.13",
+        "@types/node": "^20.11.16"
+    }
+}
