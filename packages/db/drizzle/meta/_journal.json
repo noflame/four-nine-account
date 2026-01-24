@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "5",
-      "when": 1769223818840,
-      "tag": "0000_smart_switch",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1769224693859,
-      "tag": "0001_cool_vivisector",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1769230259354,
-      "tag": "0002_marvelous_roughhouse",
+      "when": 1769230359537,
+      "tag": "0000_quick_chimera",
       "breakpoints": true
     }
   ]

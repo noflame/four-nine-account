@@ -5,6 +5,7 @@ export const users = sqliteTable('users', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
+    firebaseUid: text('firebase_uid').unique(),
     role: text('role', { enum: ['admin', 'member', 'child'] }).notNull().default('member'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -81,5 +82,5 @@ export const transactions = sqliteTable('transactions', {
     sourceAccountId: integer('source_account_id').references(() => accounts.id),
     destinationAccountId: integer('destination_account_id').references(() => accounts.id),
     userId: integer('user_id').references(() => users.id).notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
