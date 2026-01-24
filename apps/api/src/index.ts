@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
+
 import usersRoute from './routes/users';
 
 type Bindings = {
