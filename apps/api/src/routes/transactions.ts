@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { createDb, transactions, accounts, users } from '@lin-fan/db';
+import { createDb, transactions, users } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
 type Bindings = {

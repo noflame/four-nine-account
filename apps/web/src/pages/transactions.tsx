@@ -22,10 +22,18 @@ export default function TransactionsPage() {
             const res = await client.transactions.$get();
             if (res.ok) {
                 const data = await res.json();
-                setTransactions(data);
+                console.log("Fetched transactions:", data); // Debug log
+                if (Array.isArray(data)) {
+                    setTransactions(data);
+                } else {
+                    console.error("Transactions data is not an array:", data);
+                    setTransactions([]);
+                }
+            } else {
+                console.error("Failed to fetch transactions:", await res.text());
             }
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching transactions:", err);
         } finally {
             setLoading(false);
         }
