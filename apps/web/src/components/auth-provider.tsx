@@ -31,7 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const token = await currentUser.getIdToken();
                     // Initialize API client with token
-                    const client = hc<AppType>('/', {
+                    // Use /api prefix to trigger Vite proxy
+                    const client = hc<AppType>('/api', {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
@@ -41,7 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const res = await client.users.sync.$post();
                     if (res.ok) {
                         const userData = await res.json();
+                        console.log("Synced user:", userData);
                         setDbUser(userData);
+                    } else {
+                        console.error("Sync failed:", res.status, res.statusText);
                     }
                 } catch (error) {
                     console.error("Failed to sync user:", error);

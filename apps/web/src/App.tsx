@@ -1,35 +1,48 @@
-import { useState, useEffect } from 'react'
-import { hc } from 'hono/client'
-import { AppType } from '@lin-fan/api'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from '@/components/auth-provider';
+import Login from '@/pages/login';
 
-// Initialize Hono client
-const client = hc<AppType>('/')
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuth();
 
-function App() {
-    const [data, setData] = useState<string>('')
+    if (loading) return <div>Loading...</div>;
+    if (!user) return <Navigate to="/login" />;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await client.index.$get()
-                const json = await res.json()
-                setData(json.message)
-            } catch (e) {
-                console.error('Failed to fetch', e)
-                setData('Failed to connect to API')
-            }
-        }
-        fetchData()
-    }, [])
-
-    return (
-        <div className="flex h-screen items-center justify-center bg-background text-foreground">
-            <div className="text-center p-8 border rounded-lg shadow-lg">
-                <h1 className="text-4xl font-bold mb-4">Family Asset Management</h1>
-                <p className="text-xl text-muted-foreground">API Status: {data || 'Loading...'}</p>
-            </div>
-        </div>
-    )
+    return <>{children}</>;
 }
 
-export default App
+function Dashboard() {
+    const { dbUser } = useAuth();
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Dashboard</h1>
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">User Profile</h2>
+                    <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded text-sm overflow-auto text-gray-700 dark:text-gray-300">
+                        {JSON.stringify(dbUser, null, 2)}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function App() {
+    return (
+        <Router>
+            <AuthProvider>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/" element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    } />
+                </Routes>
+            </AuthProvider>
+        </Router>
+    );
+}
+
+export default App;

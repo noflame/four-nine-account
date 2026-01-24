@@ -13,8 +13,10 @@ export default function Login() {
             await signInWithPopup(auth, provider);
             navigate('/');
         } catch (err: any) {
-            console.error(err);
-            setError('Failed to login. Please check your configuration.');
+            console.error("Login Error:", err);
+            // Firebase auth errors usually have a 'code' property
+            const errorMessage = err.code ? `Error: ${err.code} - ${err.message}` : 'Failed to login. Please check console for details.';
+            setError(errorMessage);
         }
     };
 

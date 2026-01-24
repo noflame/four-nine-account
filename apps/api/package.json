@@ -8,13 +8,14 @@
         "deploy": "wrangler deploy --minify src/index.ts"
     },
     "dependencies": {
-        "hono": "^4.0.0",
         "@lin-fan/db": "workspace:*",
-        "drizzle-orm": "^0.29.3"
+        "drizzle-orm": "^0.29.3",
+        "firebaseui": "^6.1.0",
+        "hono": "^4.0.0"
     },
     "devDependencies": {
-        "wrangler": "^3.0.0",
         "@cloudflare/workers-types": "^4.20230419.0",
-        "@types/node": "^20.11.16"
+        "@types/node": "^20.11.16",
+        "wrangler": "^3.0.0"
     }
 }
