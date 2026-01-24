@@ -1,9 +1,8 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./sidebar";
-import { useAuth } from "./auth-provider";
+// import { useAuth } from "./auth-provider"; // TODO: Use for user-specific UI
 
 export default function Layout() {
-    const { user } = useAuth();
 
     return (
         <div className="flex h-screen w-full bg-background overflow-hidden">

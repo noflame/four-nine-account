@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/components/auth-provider';
 import Login from '@/pages/login';
+import Layout from '@/components/layout';
+import AssetsPage from '@/pages/assets';
+import ColorPreview from '@/pages/color-preview';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -28,8 +31,6 @@ function Dashboard() {
     );
 }
 
-import Layout from '@/components/layout';
-
 function App() {
     return (
         <Router>
@@ -44,7 +45,8 @@ function App() {
                         </ProtectedRoute>
                     }>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/assets" element={<div>Assets Page (Coming Soon)</div>} />
+                        <Route path="/assets" element={<AssetsPage />} />
+                        <Route path="/color-preview" element={<ColorPreview />} />
                         <Route path="/cards" element={<div>Credit Cards (Coming Soon)</div>} />
                         <Route path="/stocks" element={<div>Investments (Coming Soon)</div>} />
                         <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
@@ -56,3 +58,5 @@ function App() {
 }
 
 export default App;
+
+

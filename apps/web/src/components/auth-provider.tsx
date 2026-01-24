@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, onAuthStateChanged, getIdToken } from "firebase/auth";
+import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { hc } from "hono/client";
 import type { AppType } from "@lin-fan/api";
@@ -32,11 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const token = await currentUser.getIdToken();
                     // Initialize API client with token
                     // Use /api prefix to trigger Vite proxy
+                    // Workaround: Type assertion due to monorepo type resolution issue
                     const client = hc<AppType>('/api', {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
-                    });
+                    }) as any;
 
                     // Sync user with backend
                     const res = await client.users.sync.$post();
