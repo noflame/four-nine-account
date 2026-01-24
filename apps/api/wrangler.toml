@@ -1,0 +1,7 @@
+name = "lin-fan-api"
+compatibility_date = "2023-12-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lin-fan-db"
+database_id = "xxxx-xxxx-xxxx-xxxx" # Placeholder

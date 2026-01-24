@@ -1,0 +1,17 @@
+{
+    "name": "@lin-fan/api",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "wrangler dev src/index.ts",
+        "deploy": "wrangler deploy --minify src/index.ts"
+    },
+    "dependencies": {
+        "hono": "^4.0.0",
+        "@lin-fan/db": "workspace:*"
+    },
+    "devDependencies": {
+        "wrangler": "^3.0.0",
+        "@cloudflare/workers-types": "^4.20230419.0"
+    }
+}
