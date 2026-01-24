@@ -1,5 +1,7 @@
 name = "lin-fan-api"
 compatibility_date = "2023-12-01"
+account_id = "644cca80ced0666be85479869a4f17a8"
+main = "src/index.ts"
 
 [[d1_databases]]
 binding = "DB"
