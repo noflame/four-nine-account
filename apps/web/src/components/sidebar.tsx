@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Wallet, CreditCard, TrendingUp, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Wallet, CreditCard, TrendingUp, Settings, LogOut, ArrowRightLeft } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: Wallet, label: "Assets", href: "/assets" },
+    { icon: ArrowRightLeft, label: "Transactions", href: "/transactions" },
     { icon: CreditCard, label: "Credit Cards", href: "/cards" },
     { icon: TrendingUp, label: "Investments", href: "/stocks" },
     { icon: Settings, label: "Settings", href: "/settings" },

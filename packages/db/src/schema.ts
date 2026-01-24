@@ -1,4 +1,5 @@
 import { integer, text, sqliteTable, primaryKey } from 'drizzle-orm/sqlite-core';
+import { relations } from 'drizzle-orm';
 
 // Users Table
 export const users = sqliteTable('users', {
@@ -11,6 +12,11 @@ export const users = sqliteTable('users', {
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+    accounts: many(accounts),
+    transactions: many(transactions),
+}));
+
 // Accounts Table (Assets)
 export const accounts = sqliteTable('accounts', {
     id: integer('id').primaryKey({ autoIncrement: true }),
@@ -22,6 +28,15 @@ export const accounts = sqliteTable('accounts', {
     isVisibleToChild: integer('is_visible_to_child', { mode: 'boolean' }).notNull().default(false),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
+
+export const accountsRelations = relations(accounts, ({ one, many }) => ({
+    user: one(users, {
+        fields: [accounts.userId],
+        references: [users.id],
+    }),
+    sourceTransactions: many(transactions, { relationName: 'sourceAccount' }),
+    destinationTransactions: many(transactions, { relationName: 'destinationAccount' }),
+}));
 
 // Credit Cards Table (Liabilities)
 export const creditCards = sqliteTable('credit_cards', {
@@ -72,6 +87,10 @@ export const categories = sqliteTable('categories', {
     icon: text('icon'), // Optional icon identifier
 });
 
+export const categoriesRelations = relations(categories, ({ many }) => ({
+    transactions: many(transactions),
+}));
+
 // Transactions Table
 export const transactions = sqliteTable('transactions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
@@ -84,3 +103,24 @@ export const transactions = sqliteTable('transactions', {
     userId: integer('user_id').references(() => users.id).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+    user: one(users, {
+        fields: [transactions.userId],
+        references: [users.id],
+    }),
+    category: one(categories, {
+        fields: [transactions.categoryId],
+        references: [categories.id],
+    }),
+    sourceAccount: one(accounts, {
+        fields: [transactions.sourceAccountId],
+        references: [accounts.id],
+        relationName: 'sourceAccount',
+    }),
+    destinationAccount: one(accounts, {
+        fields: [transactions.destinationAccountId],
+        references: [accounts.id],
+        relationName: 'destinationAccount',
+    }),
+}));
