@@ -17,6 +17,9 @@ importers:
       '@lin-fan/db':
         specifier: workspace:*
         version: link:../../packages/db
+      drizzle-orm:
+        specifier: ^0.29.5
+        version: 0.29.5(@cloudflare/workers-types@4.20260124.0)(@types/react@18.3.27)(postgres@3.4.8)(react@18.3.1)
       hono:
         specifier: ^4.0.0
         version: 4.11.5
@@ -24,6 +27,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20230419.0
         version: 4.20260124.0
+      '@types/node':
+        specifier: ^20.19.30
+        version: 20.19.30
       wrangler:
         specifier: ^3.0.0
         version: 3.114.17(@cloudflare/workers-types@4.20260124.0)
