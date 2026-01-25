@@ -84,14 +84,23 @@ app.delete('/:id', async (c) => {
 app.post('/seed', async (c) => {
     const db = createDb(c.env.DB);
 
-    // Check if categories already exist
-    const existing = await db.select().from(categories).limit(1);
-    if (existing.length > 0) {
-        return c.json({ message: 'Categories already initialized' });
-    }
+    try {
+        // Check if categories already exist
+        const existing = await db.select().from(categories).limit(1);
+        if (existing.length > 0) {
+            return c.json({ message: 'Categories already initialized' });
+        }
 
-    const result = await db.insert(categories).values(DEFAULT_CATEGORIES as any).returning();
-    return c.json({ message: 'Seeded successfully', count: result.length, data: result });
+        const result = await db.insert(categories).values(DEFAULT_CATEGORIES as any).returning();
+        return c.json({ message: 'Seeded successfully', count: result.length, data: result });
+    } catch (e: any) {
+        console.error('Seed error:', e);
+        // Check for specific D1 errors
+        if (e.message?.includes('no such table')) {
+            return c.json({ error: 'Database table not found. Please run migrations.' }, 500);
+        }
+        return c.json({ error: e.message || 'Unknown error during seeding' }, 500);
+    }
 });
 
 export default app;
