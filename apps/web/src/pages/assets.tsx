@@ -26,8 +26,9 @@ export default function AssetsPage() {
         if (!user) return;
         try {
             const token = await user.getIdToken();
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
             // Workaround: Type assertion due to monorepo type resolution issue
-            const client = hc<AppType>('/api', {
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
             const res = await client.assets.$get();
@@ -59,8 +60,9 @@ export default function AssetsPage() {
 
         try {
             const token = await user.getIdToken();
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
             // Workaround: Type assertion due to monorepo type resolution issue
-            const client = hc<AppType>('/api', {
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
 
@@ -123,7 +125,8 @@ export default function AssetsPage() {
 
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
 

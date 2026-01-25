@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // Initialize API client with token
                     // Use /api prefix to trigger Vite proxy
                     // Workaround: Type assertion due to monorepo type resolution issue
-                    const client = hc<AppType>('/api', {
+                    // Use VITE_API_URL from environment or fallback to /api (for local proxy)
+                    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                    const client = hc<AppType>(apiUrl, {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }

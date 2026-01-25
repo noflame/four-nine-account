@@ -52,7 +52,8 @@ export default function SettingsPage() {
         setLoadingCats(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.categories.$get();
             if (res.ok) setCategories(await res.json());
         } catch (err) {
@@ -73,7 +74,8 @@ export default function SettingsPage() {
         setSeedStatus(null);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.categories.seed.$post();
             const data = await res.json();
 
@@ -100,7 +102,8 @@ export default function SettingsPage() {
         setAdding(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.categories.$post({
                 json: { name: newCatName, type: newCatType, icon: newCatIcon }
             });
@@ -121,7 +124,8 @@ export default function SettingsPage() {
         if (!confirm("Delete this category? Transactions using it will lose the category tag.")) return;
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.categories[':id'].$delete({ param: { id: id.toString() } });
             if (res.ok) fetchCategories();
         } catch (err) {
