@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { createDb, transactions, users } from '@lin-fan/db';
+import { createDb, transactions, users, creditCardInstallments } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
 type Bindings = {
@@ -22,15 +22,9 @@ const transactionSchema = z.object({
     categoryId: z.number().optional(),
     sourceAccountId: z.number().optional(),
     destinationAccountId: z.number().optional(),
-}).refine(data => {
-    if (data.type === 'expense' && !data.sourceAccountId) return false;
-    if (data.type === 'income' && !data.destinationAccountId) return false;
-    if (data.type === 'transfer' && (!data.sourceAccountId || !data.destinationAccountId)) return false;
-    return true;
-}, {
-    message: "Missing required account for the selected transaction type",
-    path: ["sourceAccountId", "destinationAccountId"]
 });
+
+
 
 // GET /api/transactions
 app.get('/', async (c) => {
@@ -56,6 +50,8 @@ app.get('/', async (c) => {
             category: true,
             sourceAccount: true,
             destinationAccount: true,
+            creditCard: true,
+            installment: true,
         }
     });
 
@@ -63,7 +59,35 @@ app.get('/', async (c) => {
 });
 
 // POST /api/transactions
-app.post('/', zValidator('json', transactionSchema), async (c) => {
+app.post('/', zValidator('json', transactionSchema.extend({
+    creditCardId: z.number().optional(),
+    installmentTotalMonths: z.number().optional().default(1),
+}).superRefine((data, ctx) => {
+    // Re-implement logic validation for credit cards
+    if (data.type === 'expense') {
+        if (!data.sourceAccountId && !data.creditCardId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Either Source Account or Credit Card is required for Expense",
+                path: ["sourceAccountId"]
+            });
+        }
+    }
+    if (data.type === 'income' && !data.destinationAccountId) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Destination Account required",
+            path: ["destinationAccountId"]
+        });
+    }
+    if (data.type === 'transfer' && (!data.sourceAccountId || !data.destinationAccountId)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Source and Dest Accounts required",
+            path: ["sourceAccountId"]
+        });
+    }
+})), async (c) => {
     const db = createDb(c.env.DB);
     const user = c.get('user');
     const data = c.req.valid('json');
@@ -76,12 +100,21 @@ app.post('/', zValidator('json', transactionSchema), async (c) => {
 
     const amountInt = Math.round(data.amount * 10000);
 
-    // Use transaction to ensure data integrity
     try {
-        // Since D1/Drizzle transaction support might vary, we implement logical checks
-        // Ideally: await db.transaction(async (tx) => { ... })
-        // For now, we proceed with sequential updates. 
-        // TODO: Ensure strict transaction safety when D1 stabilizes.
+        let installmentId = undefined;
+
+        // Handle Installments
+        if (data.creditCardId && data.installmentTotalMonths > 1) {
+            const installment = await db.insert(creditCardInstallments).values({
+                cardId: data.creditCardId,
+                description: data.description,
+                totalAmount: amountInt,
+                totalMonths: data.installmentTotalMonths,
+                remainingMonths: data.installmentTotalMonths, // Start with full term
+                startDate: new Date(data.date), // Use transaction date
+            }).returning();
+            installmentId = installment[0].id;
+        }
 
         // 1. Create Transaction Record
         const newTransaction = await db.insert(transactions).values({
@@ -90,24 +123,31 @@ app.post('/', zValidator('json', transactionSchema), async (c) => {
             amount: amountInt,
             description: data.description,
             categoryId: data.categoryId,
-            sourceAccountId: data.sourceAccountId,
+            sourceAccountId: data.sourceAccountId, // Can be NULL if CC
             destinationAccountId: data.destinationAccountId,
+            creditCardId: data.creditCardId,
+            installmentId: installmentId,
             createdAt: new Date(),
         }).returning();
 
         // 2. Update Account Balances
-        if (data.type === 'expense' && data.sourceAccountId) {
-            // Decrease source
-            await db.run(sql`UPDATE accounts SET balance = balance - ${amountInt} WHERE id = ${data.sourceAccountId} AND user_id = ${userRecord.id}`);
+        // Logic:
+        // - If Credit Card: DO NOT decrease Asset Account (Liability increase tracked dynamically)
+        // - If NOT Credit Card: existing logic
+        if (data.type === 'expense' && !data.creditCardId) {
+            if (data.sourceAccountId) {
+                // Decrease source (Cash/Bank)
+                await db.run(sql`UPDATE accounts SET balance = balance - ${amountInt} WHERE id = ${data.sourceAccountId} AND user_id = ${userRecord.id}`);
+            }
         } else if (data.type === 'income' && data.destinationAccountId) {
             // Increase destination
             await db.run(sql`UPDATE accounts SET balance = balance + ${amountInt} WHERE id = ${data.destinationAccountId} AND user_id = ${userRecord.id}`);
         } else if (data.type === 'transfer' && data.sourceAccountId && data.destinationAccountId) {
-            // Decrease source
+            // Transfer
             await db.run(sql`UPDATE accounts SET balance = balance - ${amountInt} WHERE id = ${data.sourceAccountId} AND user_id = ${userRecord.id}`);
-            // Increase destination
             await db.run(sql`UPDATE accounts SET balance = balance + ${amountInt} WHERE id = ${data.destinationAccountId} AND user_id = ${userRecord.id}`);
         }
+        // Note: Credit Card Expense does NOT touch accounts table.
 
         return c.json(newTransaction[0]);
     } catch (e: any) {

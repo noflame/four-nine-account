@@ -45,6 +45,8 @@ export const creditCards = sqliteTable('credit_cards', {
     name: text('name').notNull(),
     billingDay: integer('billing_day').notNull(), // 1-31
     paymentDay: integer('payment_day').notNull(), // 1-31
+    creditLimit: integer('credit_limit').notNull().default(0), // x10000
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 });
 
 // Credit Card Installments
@@ -100,6 +102,8 @@ export const transactions = sqliteTable('transactions', {
     categoryId: integer('category_id').references(() => categories.id),
     sourceAccountId: integer('source_account_id').references(() => accounts.id),
     destinationAccountId: integer('destination_account_id').references(() => accounts.id),
+    creditCardId: integer('credit_card_id').references(() => creditCards.id),
+    installmentId: integer('installment_id').references(() => creditCardInstallments.id),
     userId: integer('user_id').references(() => users.id).notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
@@ -122,5 +126,13 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
         fields: [transactions.destinationAccountId],
         references: [accounts.id],
         relationName: 'destinationAccount',
+    }),
+    creditCard: one(creditCards, {
+        fields: [transactions.creditCardId],
+        references: [creditCards.id],
+    }),
+    installment: one(creditCardInstallments, {
+        fields: [transactions.installmentId],
+        references: [creditCardInstallments.id],
     }),
 }));

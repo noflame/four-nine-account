@@ -6,6 +6,8 @@ import AssetsPage from '@/pages/assets';
 import ColorPreview from '@/pages/color-preview';
 import SettingsPage from '@/pages/settings';
 import TransactionsPage from '@/pages/transactions';
+import CardsPage from '@/pages/cards';
+import { Toaster } from "@/components/ui/sonner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -50,11 +52,12 @@ function App() {
                         <Route path="/assets" element={<AssetsPage />} />
                         <Route path="/transactions" element={<TransactionsPage />} />
                         <Route path="/color-preview" element={<ColorPreview />} />
-                        <Route path="/cards" element={<div>Credit Cards (Coming Soon)</div>} />
+                        <Route path="/cards" element={<CardsPage />} />
                         <Route path="/stocks" element={<div>Investments (Coming Soon)</div>} />
                         <Route path="/settings" element={<SettingsPage />} />
                     </Route>
                 </Routes>
+                <Toaster />
             </AuthProvider>
         </Router>
     );

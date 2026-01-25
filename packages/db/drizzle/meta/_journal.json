@@ -8,6 +8,27 @@
       "when": 1769230359537,
       "tag": "0000_quick_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1769256810133,
+      "tag": "0001_living_squadron_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1769259718470,
+      "tag": "0002_round_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1769263898985,
+      "tag": "0003_cooing_bloodscream",
+      "breakpoints": true
     }
   ]
 }

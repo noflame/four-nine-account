@@ -1,0 +1,1 @@
+ALTER TABLE credit_cards ADD `credit_limit` integer DEFAULT 0 NOT NULL;
