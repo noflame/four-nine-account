@@ -3,7 +3,7 @@ import { useAuth } from "@/components/auth-provider";
 import { hc } from "hono/client";
 import { AppType } from "@lin-fan/api";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -247,6 +247,9 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="text-center">{transactionToEdit ? "Edit Transaction" : "New Transaction"}</DialogTitle>
+                    <DialogDescription className="text-center">
+                        {transactionToEdit ? "Modify transaction details." : "Record a new expense, income, or transfer."}
+                    </DialogDescription>
                 </DialogHeader>
 
                 {/* Type Switcher */}

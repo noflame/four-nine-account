@@ -3,8 +3,8 @@ import { useAuth } from "@/components/auth-provider";
 import { hc } from "hono/client";
 import { AppType } from "@lin-fan/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Plus, Calendar, DollarSign, Pencil, Trash2 } from "lucide-react";
@@ -227,6 +227,9 @@ export default function CardsPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{editingCard ? "Edit Credit Card" : "Add New Credit Card"}</DialogTitle>
+                            <DialogDescription>
+                                {editingCard ? "Update credit card details." : "Enter details for a new credit card."}
+                            </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmitCard} className="space-y-4 py-4">
                             <div className="space-y-2">
@@ -327,7 +330,7 @@ export default function CardsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Pay Credit Card Bill</DialogTitle>
-                        <CardDescription>Pay off balance for {selectedCard?.name}</CardDescription>
+                        <DialogDescription>Pay off balance for {selectedCard?.name}</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handlePayCard} className="space-y-4 py-4">
                         <div className="space-y-2">

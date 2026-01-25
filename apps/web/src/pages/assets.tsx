@@ -4,7 +4,7 @@ import { hc } from "hono/client";
 import { AppType } from "@lin-fan/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -166,6 +166,9 @@ export default function AssetsPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{editingAccount ? 'Edit Account' : 'Add New Account'}</DialogTitle>
+                            <DialogDescription>
+                                {editingAccount ? 'Update your account details below.' : 'Enter the details for your new account.'}
+                            </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4 py-4">
                             <div className="space-y-2">

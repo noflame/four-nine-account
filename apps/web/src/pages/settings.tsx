@@ -4,7 +4,7 @@ import { hc } from "hono/client";
 import { AppType } from "@lin-fan/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Loader2, Plus, Trash2 } from "lucide-react";
@@ -178,6 +178,7 @@ export default function SettingsPage() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Add New Category</DialogTitle>
+                                <DialogDescription>Create a new category for your transactions.</DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleAddCategory} className="space-y-4 py-4">
                                 <div className="space-y-2">
