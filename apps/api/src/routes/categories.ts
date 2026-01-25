@@ -61,26 +61,9 @@ app.post('/', zValidator('json', categorySchema), async (c) => {
     }
 });
 
-// DELETE /api/categories/:id
-app.delete('/:id', async (c) => {
-    const db = createDb(c.env.DB);
-    const id = parseInt(c.req.param('id'));
-
-    try {
-        // TODO: Check if category is used in transactions before deleting?
-        // For now, allow deletion but transactions will lose category association (become null or invalid reference if not cascaded)
-        // With current schema, transaction.categoryId is nullable foreign key if configured, 
-        // effectively transactions will keep the ID but join will fail or generic handling.
-
-        await db.delete(categories).where(eq(categories.id, id));
-        return c.json({ success: true, deletedId: id });
-    } catch (e: any) {
-        return c.json({ error: e.message }, 500);
-    }
-});
-
 // POST /api/categories/seed
 // Helper endpoint to initialize default categories
+// MUST be defined before /:id routes to avoid shadowing
 app.post('/seed', async (c) => {
     const db = createDb(c.env.DB);
 
@@ -100,6 +83,24 @@ app.post('/seed', async (c) => {
             return c.json({ error: 'Database table not found. Please run migrations.' }, 500);
         }
         return c.json({ error: e.message || 'Unknown error during seeding' }, 500);
+    }
+});
+
+// DELETE /api/categories/:id
+app.delete('/:id', async (c) => {
+    const db = createDb(c.env.DB);
+    const id = parseInt(c.req.param('id'));
+
+    try {
+        // TODO: Check if category is used in transactions before deleting?
+        // For now, allow deletion but transactions will lose category association (become null or invalid reference if not cascaded)
+        // With current schema, transaction.categoryId is nullable foreign key if configured, 
+        // effectively transactions will keep the ID but join will fail or generic handling.
+
+        await db.delete(categories).where(eq(categories.id, id));
+        return c.json({ success: true, deletedId: id });
+    } catch (e: any) {
+        return c.json({ error: e.message }, 500);
     }
 });
 
