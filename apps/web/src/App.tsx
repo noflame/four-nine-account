@@ -7,6 +7,7 @@ import ColorPreview from '@/pages/color-preview';
 import SettingsPage from '@/pages/settings';
 import TransactionsPage from '@/pages/transactions';
 import CardsPage from '@/pages/cards';
+import DashboardPage from '@/pages/dashboard';
 import { Toaster } from "@/components/ui/sonner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -18,22 +19,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
 }
 
-function Dashboard() {
-    const { dbUser } = useAuth();
-    return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Dashboard</h1>
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">User Profile</h2>
-                    <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded text-sm overflow-auto text-gray-700 dark:text-gray-300">
-                        {JSON.stringify(dbUser, null, 2)}
-                    </pre>
-                </div>
-            </div>
-        </div>
-    );
-}
+
 
 function App() {
     return (
@@ -48,7 +34,7 @@ function App() {
                             <Layout />
                         </ProtectedRoute>
                     }>
-                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/" element={<DashboardPage />} />
                         <Route path="/assets" element={<AssetsPage />} />
                         <Route path="/transactions" element={<TransactionsPage />} />
                         <Route path="/color-preview" element={<ColorPreview />} />
