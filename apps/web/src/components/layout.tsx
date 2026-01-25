@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 import { TransactionDialog } from "./transaction-dialog";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 // import { useAuth } from "./auth-provider"; // TODO: Use for user-specific UI
 
 export default function Layout() {
@@ -19,9 +20,19 @@ export default function Layout() {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Header */}
+                {/* Header */}
                 <header className="flex items-center justify-between border-b px-6 py-4 bg-card md:hidden">
                     <h1 className="text-lg font-bold">Family Asset</h1>
-                    {/* Mobile Menu Trigger would go here */}
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="p-0 border-r-0">
+                            <Sidebar />
+                        </SheetContent>
+                    </Sheet>
                 </header>
 
                 {/* Content Scroll Area */}
