@@ -18,7 +18,8 @@ export default function TransactionsPage() {
         if (!user) return;
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
 
@@ -57,7 +58,8 @@ export default function TransactionsPage() {
 
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
 

@@ -15,7 +15,8 @@ export default function DashboardPage() {
             if (!user) return;
             try {
                 const token = await user.getIdToken();
-                const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+                const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
                 const res = await client.dashboard.$get();
                 if (res.ok) {
                     setData(await res.json());

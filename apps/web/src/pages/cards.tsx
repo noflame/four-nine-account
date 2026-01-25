@@ -50,7 +50,8 @@ export default function CardsPage() {
         setLoading(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
 
             const [cardsRes, accountsRes] = await Promise.all([
                 client.cards.$get(),
@@ -88,7 +89,8 @@ export default function CardsPage() {
         setSubmitting(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
 
             let res;
             if (editingCard) {
@@ -141,7 +143,8 @@ export default function CardsPage() {
         setSubmitting(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.cards[':id'].$delete({
                 param: { id: editingCard.id.toString() }
             });
@@ -177,7 +180,8 @@ export default function CardsPage() {
         setPaying(true);
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
 
             const res = await client.cards[':id'].pay.$post({
                 param: { id: selectedCard.id.toString() },

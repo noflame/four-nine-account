@@ -59,7 +59,8 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
         if (open && user) {
             const fetchData = async () => {
                 const token = await user.getIdToken();
-                const client = hc<AppType>('/api', {
+                const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                const client = hc<AppType>(apiUrl, {
                     headers: { Authorization: `Bearer ${token}` }
                 }) as any;
 
@@ -192,7 +193,8 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
 
         try {
             const token = await user.getIdToken();
-            const client = hc<AppType>('/api', {
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, {
                 headers: { Authorization: `Bearer ${token}` }
             }) as any;
 
