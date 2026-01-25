@@ -12,6 +12,7 @@ import { Check, Loader2, Plus, Trash2 } from "lucide-react";
 export default function SettingsPage() {
     const { user } = useAuth();
     const [seeding, setSeeding] = useState(false);
+    const [seedStatus, setSeedStatus] = useState<'success' | 'error' | null>(null);
     const [seedResult, setSeedResult] = useState<string | null>(null);
     const [categories, setCategories] = useState<any[]>([]);
     const [loadingCats, setLoadingCats] = useState(false);
@@ -69,20 +70,25 @@ export default function SettingsPage() {
         if (!user) return;
         setSeeding(true);
         setSeedResult(null);
+        setSeedStatus(null);
         try {
             const token = await user.getIdToken();
             const client = hc<AppType>('/api', { headers: { Authorization: `Bearer ${token}` } }) as any;
             const res = await client.categories.seed.$post();
             const data = await res.json();
+
             if (res.ok) {
                 setSeedResult(data.message);
+                setSeedStatus('success');
                 fetchCategories();
             } else {
-                setSeedResult("Failed to seed data");
+                setSeedResult(data.error || "Failed to seed data");
+                setSeedStatus('error');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setSeedResult("Error occurred");
+            setSeedResult(err.message || "Error occurred");
+            setSeedStatus('error');
         } finally {
             setSeeding(false);
         }
@@ -139,8 +145,8 @@ export default function SettingsPage() {
                             <h3 className="font-medium">Default Categories</h3>
                             <p className="text-sm text-gray-500">Restore default system categories</p>
                             {seedResult && (
-                                <p className="text-sm text-green-600 mt-1 flex items-center">
-                                    <Check className="h-3 w-3 mr-1" /> {seedResult}
+                                <p className={`text-sm mt-1 flex items-center ${seedStatus === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {seedStatus === 'success' ? <Check className="h-3 w-3 mr-1" /> : null} {seedResult}
                                 </p>
                             )}
                         </div>
@@ -205,8 +211,8 @@ export default function SettingsPage() {
                                                 type="button"
                                                 onClick={() => setNewCatIcon(icon.id)}
                                                 className={`p-2 rounded text-xl border transition-colors ${newCatIcon === icon.id
-                                                        ? 'bg-primary/10 border-primary'
-                                                        : 'hover:bg-muted border-transparent'
+                                                    ? 'bg-primary/10 border-primary'
+                                                    : 'hover:bg-muted border-transparent'
                                                     }`}
                                             >
                                                 {icon.label}

@@ -1,0 +1,1 @@
+ALTER TABLE stocks ADD `owner_label` text DEFAULT 'Self' NOT NULL;

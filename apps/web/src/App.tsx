@@ -8,6 +8,7 @@ import SettingsPage from '@/pages/settings';
 import TransactionsPage from '@/pages/transactions';
 import CardsPage from '@/pages/cards';
 import DashboardPage from '@/pages/dashboard';
+import StocksPage from '@/pages/stocks';
 import { Toaster } from "@/components/ui/sonner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -39,7 +40,7 @@ function App() {
                         <Route path="/transactions" element={<TransactionsPage />} />
                         <Route path="/color-preview" element={<ColorPreview />} />
                         <Route path="/cards" element={<CardsPage />} />
-                        <Route path="/stocks" element={<div>Investments (Coming Soon)</div>} />
+                        <Route path="/stocks" element={<StocksPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                     </Route>
                 </Routes>

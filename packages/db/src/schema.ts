@@ -67,6 +67,7 @@ export const stocks = sqliteTable('stocks', {
     ticker: text('ticker').notNull(),
     shares: integer('shares').notNull(), // x10000 (supports fractional)
     avgCost: integer('avg_cost').notNull(), // x10000
+    ownerLabel: text('owner_label').notNull().default('Self'),
 });
 
 // Stock Prices (Historical Data)
