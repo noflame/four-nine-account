@@ -4,12 +4,15 @@ import { hc } from "hono/client";
 import { AppType } from "@lin-fan/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, ArrowRightLeft, TrendingUp, TrendingDown } from "lucide-react";
+import { Trash2, ArrowRightLeft, TrendingUp, TrendingDown, Pencil } from "lucide-react";
+import { TransactionDialog } from "@/components/transaction-dialog";
 
 export default function TransactionsPage() {
     const { user } = useAuth();
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null); // State for edit
+
 
     const fetchTransactions = async () => {
         if (!user) return;
@@ -128,6 +131,20 @@ export default function TransactionsPage() {
                                             tx.destinationAccountId ? '+' : '-'}
                                         {formatAmount(tx.amount)}
                                     </span>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => {
+                                        setEditingTransaction(tx);
+                                        // Need to trigger dialog open from layout or context?
+                                        // Since TransactionDialog is in Layout, we can't easily open it from here unless we move state up or use context/event.
+                                        // But wait, the user didn't say where the dialog is. 
+                                        // Inspect Layout: Layout has <TransactionDialog open={isTransactionOpen} ... />
+                                        // So we need to trigger 'open-transaction-dialog' event with data?
+                                        // OR simpler: Render a local TransactionDialog for editing here?
+                                        // Let's render a key-controlled dialog here for now or update the Layout one via event.
+                                        // Event based is loose. Local is better for "Edit specific".
+                                        // Let's check Layout again.
+                                    }}>
+                                        <Pencil className="w-4 h-4" />
+                                    </Button>
                                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(tx.id)}>
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -137,6 +154,18 @@ export default function TransactionsPage() {
                     ))
                 )}
             </div>
-        </div>
+
+
+            {/* Edit Dialog */}
+            <TransactionDialog
+                open={!!editingTransaction}
+                onOpenChange={(open) => !open && setEditingTransaction(null)}
+                transactionToEdit={editingTransaction}
+                onSuccess={() => {
+                    fetchTransactions();
+                    setEditingTransaction(null);
+                }}
+            />
+        </div >
     );
 }

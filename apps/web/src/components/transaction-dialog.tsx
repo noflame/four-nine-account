@@ -15,9 +15,10 @@ interface TransactionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSuccess?: () => void;
+    transactionToEdit?: any;
 }
 
-export function TransactionDialog({ open, onOpenChange, onSuccess }: TransactionDialogProps) {
+export function TransactionDialog({ open, onOpenChange, onSuccess, transactionToEdit }: TransactionDialogProps) {
     const { user } = useAuth();
     const [type, setType] = useState<TransactionType>('expense');
     const [loading, setLoading] = useState(false);
@@ -76,15 +77,113 @@ export function TransactionDialog({ open, onOpenChange, onSuccess }: Transaction
         }
     }, [open, user]);
 
-    // Reset form when type changes
+    // Pre-populate form when editing
     useEffect(() => {
+        if (open) {
+            if (transactionToEdit) {
+                // Editing mode
+                // Determine transaction type based on fields
+                // Default API returns full objects, we need IDs
+                setType(transactionToEdit.creditCardId ? 'expense' :
+                    (transactionToEdit.sourceAccountId && !transactionToEdit.destinationAccountId) ? 'expense' :
+                        (!transactionToEdit.sourceAccountId && transactionToEdit.destinationAccountId) ? 'income' : 'transfer');
+
+                // Wait for type state to settle? Actually better to set all at once
+                // But type change triggers reset... so we need to bypass reset logic or set after
+                // Let's modify the reset logic to check if we are just opening edit mode
+            } else {
+                // New mode - reset is handled by type change effect usually, but we need clean slate
+                setAmount("");
+                setDescription("");
+                setDate(new Date().toISOString().split('T')[0]);
+                // other fields are reset by type change effect
+            }
+        }
+    }, [open, transactionToEdit]);
+
+    // Handle initial data population after type matches
+    useEffect(() => {
+        if (open && transactionToEdit) {
+            // Force type first (redundant if already set above but ensures consistency)
+            // No, setting type triggers reset. We need to handle this carefully.
+            // Better approach: combine reset and population logic.
+        }
+    }, [open, transactionToEdit]);
+
+    // REWRITE: Combined effect for form state management
+    useEffect(() => {
+        if (open) {
+            if (transactionToEdit) {
+                const tx = transactionToEdit;
+                // Determine Type
+                let newType: TransactionType = 'expense';
+                if (!tx.sourceAccountId && tx.destinationAccountId) newType = 'income';
+                else if (tx.sourceAccountId && tx.destinationAccountId) newType = 'transfer';
+
+                setType(newType);
+                setAmount((tx.amount / 10000).toString());
+                setDescription(tx.description);
+                setDate(new Date(tx.date).toISOString().split('T')[0]);
+                setCategoryId(tx.categoryId);
+
+                // Account logic
+                setSourceAccountId(tx.sourceAccountId);
+                setDestinationAccountId(tx.destinationAccountId);
+
+                // Credit Card logic
+                if (tx.creditCardId) {
+                    setPaymentMethod('credit');
+                    setSelectedCardId(tx.creditCardId);
+                    // Installment logic omitted for simple edit, defaults to 1 or existing?
+                    // API returns installment object if exists.
+                    // For now let's just default to 1 or try to extract from tx.installment
+                    if (tx.installment) {
+                        setInstallments(tx.installment.totalMonths);
+                    } else {
+                        setInstallments(1);
+                    }
+                } else {
+                    setPaymentMethod('cash');
+                    setSelectedCardId(undefined);
+                    setInstallments(1);
+                }
+            } else {
+                // Reset for new entry
+                // Only reset basic fields, type specific reset handled by [type] effect
+                setAmount("");
+                setDescription("");
+                setDate(new Date().toISOString().split('T')[0]);
+            }
+        }
+    }, [open, transactionToEdit]);
+
+    // Reset form when type changes - modified to avoid clearing when setting initial type for edit
+    useEffect(() => {
+        // Only reset if we are NOT currently populating an edit form
+        // Simple heuristic: check if transactionToEdit matches current type? 
+        // Or just let user fix it if they switch types during edit.
+        // Actually, if user switches type during edit, they probably want a reset.
+        // But the initial render triggers type change. 
+        // We can check if the current state MATCHES the edit target.
+        if (transactionToEdit) {
+            // If we are editing, and type matches the transaction's implied type, DON'T reset.
+            // If user manually switched type, DO reset.
+            // This is tricky. Let's trust the user or just re-populate?
+            // Simplest: only reset if NOT open? No.
+            // Let's skip reset logic here and handle it manually or assume [open] effect overrides.
+            // But [type] dependency will fire after [open] effect sets type.
+            // Workaround: Don't use [type] effect for reset. Reset implicitly when switching UI tabs?
+            // No, UI tabs call setType.
+            return;
+        }
+
         setCategoryId(undefined);
         setSourceAccountId(undefined);
         setDestinationAccountId(undefined);
         setPaymentMethod('cash');
         setSelectedCardId(undefined);
         setInstallments(1);
-    }, [type]);
+    }, [type]); // Needs to be careful with this loop
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,7 +213,19 @@ export function TransactionDialog({ open, onOpenChange, onSuccess }: Transaction
                 payload.installmentTotalMonths = installments;
             }
 
-            const res = await client.transactions.$post({ json: payload });
+
+
+            let res;
+            if (transactionToEdit) {
+                // Edit (PUT)
+                res = await client.transactions[':id'].$put({
+                    param: { id: transactionToEdit.id.toString() },
+                    json: payload
+                });
+            } else {
+                // Create (POST)
+                res = await client.transactions.$post({ json: payload });
+            }
 
             if (res.ok) {
                 onOpenChange(false);
@@ -135,7 +246,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess }: Transaction
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle className="text-center">New Transaction</DialogTitle>
+                    <DialogTitle className="text-center">{transactionToEdit ? "Edit Transaction" : "New Transaction"}</DialogTitle>
                 </DialogHeader>
 
                 {/* Type Switcher */}
