@@ -13,6 +13,7 @@ export default function Layout() {
     const { currentLedger } = useLedger();
     const navigate = useNavigate();
     const [isTransactionOpen, setIsTransactionOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
         <div className="flex h-screen w-full bg-background overflow-hidden relative">
@@ -26,14 +27,14 @@ export default function Layout() {
                 {/* Header */}
                 <header className="flex items-center justify-between border-b px-6 py-4 bg-card">
                     <div className="flex items-center gap-4">
-                        <Sheet>
+                        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                             <SheetTrigger asChild className="md:hidden">
                                 <Button variant="ghost" size="icon">
                                     <Menu className="h-6 w-6" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="left" className="p-0 border-r-0">
-                                <Sidebar />
+                                <Sidebar onItemClick={() => setIsMobileMenuOpen(false)} />
                             </SheetContent>
                         </Sheet>
                         <div>

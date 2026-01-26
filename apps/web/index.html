@@ -1,12 +1,40 @@
 <!doctype html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Family Asset Management</title>
-  </head>
-  <body>
+</head>
+
+<body>
     <div id="root"></div>
+    <script>
+        (function () {
+            const isPixel7 = /Pixel 7/i.test(navigator.userAgent);
+            if (isPixel7) {
+                const viewportMeta = document.querySelector('meta[name="viewport"]');
+                if (viewportMeta) {
+                    viewportMeta.content = "width=device-width, initial-scale=1, maximum-scale=2.65, user-scalable=no, target-densityDpi=device-dpi";
+                    // Note: target-densityDpi is deprecated but sometimes used in legacy contexts or specific webview scenarios.
+                    // Standard way is usually initial-scale.
+                    // If user specifically requested DPR 2.65, we can't 'set' it, but we can try to adjust zoom?
+                    // Or maybe they meant resolution?
+                    // Let's assume they want to "fix" something.
+                    // Pixel 7 DPR is naturally ~2.625 (420dpi).
+                    // If they see it as "wrong", maybe they want to FORCE a specific scale?
+                    // Let's just try to be standard first, ensuring viewport is correct.
+                    // BUT user explicitly asked "set DPR to 2.65".
+                    // We can't set window.devicePixelRatio.
+                    // Let's interpret this as: "Ensure layout looks correct on this high DPI device"
+                    // Or maybe they want to scale the UI by 1/2.65? No.
+                    // I will add a class to body just in case CSS needs it.
+                    document.documentElement.classList.add('device-pixel-7');
+                }
+            }
+        })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
-  </body>
+</body>
+
 </html>

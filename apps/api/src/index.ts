@@ -8,8 +8,7 @@ import cards_ from './routes/cards';
 import dashboardRoute from './routes/dashboard';
 
 import stocks_ from './routes/stocks';
-import family_ from './routes/family';
-import migration_ from './routes/migration'; // Added migrationRoute import
+import migration_ from './routes/migration';
 import ledgers_ from './routes/ledgers';
 
 type Bindings = {
@@ -31,7 +30,6 @@ const routes = app
     .route('/transactions', transactionsRoute)
     .route('/api/cards', cards_)
     .route('/api/stocks', stocks_)
-    .route('/api/family', family_)
     .route('/api/migration', migration_)
     .route('/api/ledgers', ledgers_)
     .route('/dashboard', dashboardRoute);

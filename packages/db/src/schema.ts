@@ -43,9 +43,7 @@ export const users = sqliteTable('users', {
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
     firebaseUid: text('firebase_uid').unique(),
-    // Family stuff to be removed later, keeping for migration
-    role: text('role', { enum: ['admin', 'member', 'child'] }).notNull().default('member'),
-    familyId: integer('family_id').references(() => families.id), // Keep reference for migration
+    // Family stuff removed
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
@@ -54,10 +52,6 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     accounts: many(accounts),
     transactions: many(transactions),
     ledgers: many(ledgerUsers),
-    family: one(families, {
-        fields: [users.familyId],
-        references: [families.id],
-    }),
 }));
 
 // Accounts Table (Assets)
@@ -218,14 +212,5 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
     }),
 }));
 
-// Families Table (Deprecated - kept for migration)
-export const families = sqliteTable('families', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    name: text('name').notNull(),
-    inviteCode: text('invite_code').notNull().unique(),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
+// Families Table Removed
 
-export const familiesRelations = relations(families, ({ many }) => ({
-    members: many(users),
-}));

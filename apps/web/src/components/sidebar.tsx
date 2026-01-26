@@ -15,12 +15,17 @@ const sidebarItems = [
 
 import { useAuth } from "./auth-provider";
 
-export function Sidebar() {
+interface SidebarProps {
+    onItemClick?: () => void;
+}
+
+export function Sidebar({ onItemClick }: SidebarProps) {
     const location = useLocation();
     const { dbUser } = useAuth();
 
     const handleLogout = () => {
         auth.signOut();
+        onItemClick?.();
     };
 
     // Filter items based on role
@@ -45,6 +50,7 @@ export function Sidebar() {
                         <Link
                             key={item.href}
                             to={item.href}
+                            onClick={onItemClick}
                             className={cn(
                                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground",
                                 isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
