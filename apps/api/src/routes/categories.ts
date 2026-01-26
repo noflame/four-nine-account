@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { createDb, categories } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
@@ -39,17 +39,26 @@ const categorySchema = z.object({
 // GET /api/categories
 app.get('/', async (c) => {
     const db = createDb(c.env.DB);
-    const result = await db.select().from(categories).all();
+    const ledger = c.get('ledger');
+
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+
+    const result = await db.select().from(categories).where(eq(categories.ledgerId, ledger.id)).all();
     return c.json(result);
 });
 
 // POST /api/categories
 app.post('/', zValidator('json', categorySchema), async (c) => {
     const db = createDb(c.env.DB);
+    const ledger = c.get('ledger');
     const data = c.req.valid('json');
+
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot create categories' }, 403);
 
     try {
         const result = await db.insert(categories).values({
+            ledgerId: ledger.id,
             name: data.name,
             type: data.type,
             icon: data.icon || 'more-horizontal', // Default icon
@@ -62,26 +71,30 @@ app.post('/', zValidator('json', categorySchema), async (c) => {
 });
 
 // POST /api/categories/seed
-// Helper endpoint to initialize default categories
-// MUST be defined before /:id routes to avoid shadowing
+// Seed categories for the current ledger
 app.post('/seed', async (c) => {
     const db = createDb(c.env.DB);
+    const ledger = c.get('ledger');
+
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot seed categories' }, 403);
 
     try {
-        // Check if categories already exist
-        const existing = await db.select().from(categories).limit(1);
+        // Check if categories already exist in this ledger
+        const existing = await db.select().from(categories).where(eq(categories.ledgerId, ledger.id)).limit(1);
         if (existing.length > 0) {
-            return c.json({ message: 'Categories already initialized' });
+            return c.json({ message: 'Categories already initialized for this ledger' });
         }
 
-        const result = await db.insert(categories).values(DEFAULT_CATEGORIES as any).returning();
+        const values = DEFAULT_CATEGORIES.map(cat => ({
+            ...cat,
+            ledgerId: ledger.id,
+            icon: cat.icon || 'more-horizontal'
+        }));
+
+        const result = await db.insert(categories).values(values).returning();
         return c.json({ message: 'Seeded successfully', count: result.length, data: result });
     } catch (e: any) {
-        console.error('Seed error:', e);
-        // Check for specific D1 errors
-        if (e.message?.includes('no such table')) {
-            return c.json({ error: 'Database table not found. Please run migrations.' }, 500);
-        }
         return c.json({ error: e.message || 'Unknown error during seeding' }, 500);
     }
 });
@@ -89,15 +102,19 @@ app.post('/seed', async (c) => {
 // DELETE /api/categories/:id
 app.delete('/:id', async (c) => {
     const db = createDb(c.env.DB);
+    const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));
 
-    try {
-        // TODO: Check if category is used in transactions before deleting?
-        // For now, allow deletion but transactions will lose category association (become null or invalid reference if not cascaded)
-        // With current schema, transaction.categoryId is nullable foreign key if configured, 
-        // effectively transactions will keep the ID but join will fail or generic handling.
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot delete categories' }, 403);
 
-        await db.delete(categories).where(eq(categories.id, id));
+    try {
+        const result = await db.delete(categories).where(
+            and(eq(categories.id, id), eq(categories.ledgerId, ledger.id))
+        ).returning();
+
+        if (result.length === 0) return c.json({ error: 'Category not found in this ledger' }, 404);
+
         return c.json({ success: true, deletedId: id });
     } catch (e: any) {
         return c.json({ error: e.message }, 500);

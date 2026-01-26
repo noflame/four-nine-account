@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useApiClient } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -18,6 +17,7 @@ interface StockDialogProps {
 
 export function StockDialog({ open, onOpenChange, onSuccess }: StockDialogProps) {
     const { user } = useAuth();
+    const { getClient } = useApiClient();
     const [mode, setMode] = useState<"buy" | "sell">("buy");
     const [loading, setLoading] = useState(false);
     const [accounts, setAccounts] = useState<any[]>([]);
@@ -34,9 +34,7 @@ export function StockDialog({ open, onOpenChange, onSuccess }: StockDialogProps)
         if (open && user) {
             // Fetch accounts for dropdown
             const fetchAccounts = async () => {
-                const token = await user.getIdToken();
-                const apiUrl = import.meta.env.VITE_API_URL || '/api';
-                const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+                const client = await getClient();
                 const res = await client.assets.$get();
                 if (res.ok) {
                     const data = await res.json();
@@ -57,9 +55,7 @@ export function StockDialog({ open, onOpenChange, onSuccess }: StockDialogProps)
         setLoading(true);
 
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
 
             const payload = {
                 ticker: ticker.toUpperCase(),

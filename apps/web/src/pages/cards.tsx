@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -23,6 +23,8 @@ import {
 
 export default function CardsPage() {
     const { user } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [cards, setCards] = useState<any[]>([]);
     const [accounts, setAccounts] = useState<any[]>([]); // For paying off
     const [loading, setLoading] = useState(true);
@@ -49,9 +51,7 @@ export default function CardsPage() {
         if (!user) return;
         setLoading(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
 
             const [cardsRes, accountsRes] = await Promise.all([
                 client.cards.$get(),
@@ -70,7 +70,7 @@ export default function CardsPage() {
 
     useEffect(() => {
         fetchData();
-    }, [user]);
+    }, [user, currentLedgerId]);
 
 
 
@@ -88,9 +88,7 @@ export default function CardsPage() {
         if (!user) return;
         setSubmitting(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
 
             let res;
             if (editingCard) {
@@ -142,9 +140,7 @@ export default function CardsPage() {
         if (!user || !editingCard) return;
         setSubmitting(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
             const res = await client.cards[':id'].$delete({
                 param: { id: editingCard.id.toString() }
             });
@@ -179,9 +175,7 @@ export default function CardsPage() {
         if (!user || !selectedCard) return;
         setPaying(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
 
             const res = await client.cards[':id'].pay.$post({
                 param: { id: selectedCard.id.toString() },

@@ -29,61 +29,16 @@ const transactionSchema = z.object({
 // GET /api/transactions
 app.get('/', async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
 
     // Pagination params
     const limit = Number(c.req.query('limit')) || 20;
     const offset = Number(c.req.query('offset')) || 0;
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-
-    let whereCondition = eq(transactions.userId, userRecord.id);
-
-    if (userRecord.familyId) {
-        const familyMembers = await db.query.users.findMany({
-            where: eq(users.familyId, userRecord.familyId),
-            columns: { id: true }
-        });
-        const memberIds = familyMembers.map(m => m.id);
-
-        if (userRecord.role === 'child') {
-            // For child: userId in family AND (sourceAccount.isVisible OR destAccount.isVisible)
-            // This is complex in a single where clause with drizzle query builder if we can't join easily in 'where'.
-            // Drizzle `findMany` 'where' acts on the main table columns usually.
-            // We can filter by `userId` but also need to filter by account visibility.
-            // Easier approach: Get visible account IDs first.
-            const visibleAccounts = await db.query.accounts.findMany({
-                where: and(inArray(accounts.userId, memberIds), eq(accounts.isVisibleToChild, true)),
-                columns: { id: true }
-            });
-            const visibleAccountIds = visibleAccounts.map(a => a.id);
-
-            if (visibleAccountIds.length === 0) {
-                return c.json([]);
-            }
-
-            // OR condition: source IN visible OR dest IN visible
-            // AND still belongs to family (which is implied if accounts are from family members)
-            // But transactions.userId should also be checked? Transaction creator?
-            // Actually, if I pay for something from a visible account, the child should see it regardless of who created it?
-            // Or should they only see transactions created by themselves? (Child probably doesn't verify transactions much).
-            // Let's assume: Show transactions where Source OR Destination is a visible account.
-            // Use 'as any' workaround for complex SQL or redefine whereCondition type
-            whereCondition = and(
-                inArray(transactions.userId, memberIds),
-                sql`(${transactions.sourceAccountId} IN ${visibleAccountIds} OR ${transactions.destinationAccountId} IN ${visibleAccountIds})`
-            ) as any;
-        } else {
-            whereCondition = inArray(transactions.userId, memberIds);
-        }
-    }
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
 
     const result = await db.query.transactions.findMany({
-        where: whereCondition,
+        where: eq(transactions.ledgerId, ledger.id),
         orderBy: [desc(transactions.date), desc(transactions.createdAt)],
         limit: limit,
         offset: offset,
@@ -134,14 +89,11 @@ app.post('/', zValidator('json', transactionSchema.extend({
 })), async (c) => {
     const db = createDb(c.env.DB);
     const user = c.get('user');
+    const ledger = c.get('ledger');
     const data = c.req.valid('json');
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot create transactions' }, 403);
 
     const amountInt = Math.round(data.amount * 10000);
 
@@ -149,17 +101,9 @@ app.post('/', zValidator('json', transactionSchema.extend({
     const verifyAccountAccess = async (accountId: number | null | undefined) => {
         if (!accountId) return;
         const account = await db.query.accounts.findFirst({
-            where: eq(accounts.id, accountId),
-            with: { user: true }
+            where: and(eq(accounts.id, accountId), eq(accounts.ledgerId, ledger.id))
         });
-        if (!account) throw new Error(`Account ${accountId} not found`);
-
-        const isOwner = account.userId === userRecord.id;
-        const isFamily = userRecord.familyId && account.user.familyId === userRecord.familyId;
-
-        if (!isOwner && !isFamily) {
-            throw new Error(`Unauthorized access to account ${accountId}`);
-        }
+        if (!account) throw new Error(`Account ${accountId} not found in this ledger`);
     };
 
     try {
@@ -170,14 +114,11 @@ app.post('/', zValidator('json', transactionSchema.extend({
 
         // Handle Installments
         if (data.creditCardId && data.installmentTotalMonths > 1) {
-            // Check Credit Card Access too?
+            // Check Credit Card Access
             const card = await db.query.creditCards.findFirst({
-                where: eq(creditCards.id, data.creditCardId),
-                with: { user: { with: { family: true } } } // Need to join user to check family? No, user table has familyId column.
+                where: and(eq(creditCards.id, data.creditCardId), eq(creditCards.ledgerId, ledger.id))
             });
-            // Actually creditCards -> user relation exists.
-            // Let's implement card check later or now. 
-            // For now assume strictly account access prevents money moves.
+            if (!card) throw new Error(`Credit Card ${data.creditCardId} not found in this ledger`);
 
             const installment = await db.insert(creditCardInstallments).values({
                 cardId: data.creditCardId,
@@ -188,11 +129,17 @@ app.post('/', zValidator('json', transactionSchema.extend({
                 startDate: new Date(data.date), // Use transaction date
             }).returning();
             installmentId = installment[0].id;
+        } else if (data.creditCardId) {
+            const card = await db.query.creditCards.findFirst({
+                where: and(eq(creditCards.id, data.creditCardId), eq(creditCards.ledgerId, ledger.id))
+            });
+            if (!card) throw new Error(`Credit Card ${data.creditCardId} not found in this ledger`);
         }
 
         // 1. Create Transaction Record
         const newTransaction = await db.insert(transactions).values({
-            userId: userRecord.id,
+            userId: user.id,
+            ledgerId: ledger.id,
             date: data.date,
             amount: amountInt,
             description: data.description,
@@ -230,28 +177,18 @@ app.post('/', zValidator('json', transactionSchema.extend({
 // DELETE /api/transactions/:id
 app.delete('/:id', async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot delete transactions' }, 403);
 
     // 1. Get transaction first to know amount and accounts
     const tx = await db.query.transactions.findFirst({
-        where: eq(transactions.id, id),
-        with: { user: true }
+        where: and(eq(transactions.id, id), eq(transactions.ledgerId, ledger.id))
     });
 
-    if (!tx) return c.json({ error: 'Transaction not found' }, 404);
-
-    // Verify Access (Owner or Family)
-    const isOwner = tx.userId === userRecord.id;
-    const isFamily = userRecord.familyId && tx.user.familyId === userRecord.familyId;
-    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+    if (!tx) return c.json({ error: 'Transaction not found in this ledger' }, 404);
 
     // 2. Revert Balance Changes (No user_id check in SQL)
     const amountInt = tx.amount;
@@ -280,41 +217,27 @@ app.put('/:id', zValidator('json', transactionSchema.extend({
     installmentTotalMonths: z.number().optional().default(1),
 })), async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));
     const data = c.req.valid('json');
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot edit transactions' }, 403);
 
     // 1. Get existing transaction
     const tx = await db.query.transactions.findFirst({
-        where: eq(transactions.id, id),
-        with: { user: true }
+        where: and(eq(transactions.id, id), eq(transactions.ledgerId, ledger.id))
     });
 
-    if (!tx) return c.json({ error: 'Transaction not found' }, 404);
-
-    // Verify Access
-    const isOwner = tx.userId === userRecord.id;
-    const isFamily = userRecord.familyId && tx.user.familyId === userRecord.familyId;
-    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+    if (!tx) return c.json({ error: 'Transaction not found or unauthorized' }, 404);
 
     // Helper to verify Account Access (New accounts)
     const verifyAccountAccess = async (accountId: number | null | undefined) => {
         if (!accountId) return;
         const account = await db.query.accounts.findFirst({
-            where: eq(accounts.id, accountId),
-            with: { user: true }
+            where: and(eq(accounts.id, accountId), eq(accounts.ledgerId, ledger.id))
         });
-        if (!account) throw new Error(`Account ${accountId} not found`);
-        const accOwner = account.userId === userRecord.id;
-        const accFamily = userRecord.familyId && account.user.familyId === userRecord.familyId;
-        if (!accOwner && !accFamily) throw new Error(`Unauthorized access to account ${accountId}`);
+        if (!account) throw new Error(`Account ${accountId} not found in this ledger`);
     };
 
     const newAmountInt = Math.round(data.amount * 10000);

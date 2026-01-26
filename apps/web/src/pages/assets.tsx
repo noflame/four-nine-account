@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,6 +11,8 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function AssetsPage() {
     const { user, dbUser } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [accounts, setAccounts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
@@ -27,12 +29,7 @@ export default function AssetsPage() {
     const fetchAccounts = async () => {
         if (!user) return;
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            // Workaround: Type assertion due to monorepo type resolution issue
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
+            const client = await getClient();
             const res = await client.assets.$get();
             if (res.ok) {
                 const data = await res.json();
@@ -54,19 +51,14 @@ export default function AssetsPage() {
         return () => {
             window.removeEventListener('transaction-updated', handleUpdate);
         };
-    }, [user]);
+    }, [user, currentLedgerId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            // Workaround: Type assertion due to monorepo type resolution issue
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
+            const client = await getClient();
 
             if (editingAccount) {
                 // Update existing account
@@ -126,12 +118,7 @@ export default function AssetsPage() {
         if (!confirm('確定要刪除這個帳戶嗎？')) return;
 
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
-
+            const client = await getClient();
             const res = await client.assets[':id'].$delete({
                 param: { id: accountId.toString() }
             });

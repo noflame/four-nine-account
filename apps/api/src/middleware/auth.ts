@@ -1,7 +1,8 @@
 import { createMiddleware } from 'hono/factory';
 import { decode } from 'hono/jwt';
-import { createDb, users } from '@lin-fan/db';
-import { eq } from 'drizzle-orm';
+import { createDb, users, ledgerUsers, ledgers } from '@lin-fan/db';
+import * as schema from '@lin-fan/db'; // Need full schema for relations
+import { eq, and } from 'drizzle-orm';
 
 // Define the custom context variable for User
 export type AuthVariables = {
@@ -11,6 +12,11 @@ export type AuthVariables = {
         email?: string;
         role: 'admin' | 'member' | 'child';
         familyId?: number | null;
+    };
+    ledger?: {
+        id: number;
+        role: 'owner' | 'editor' | 'viewer';
+        name: string;
     };
     // Helper to get D1 Database (inferred from index.ts usually, but good to have)
     DB: D1Database;
@@ -58,13 +64,56 @@ export const firebaseAuth = createMiddleware<{ Bindings: { DB: D1Database }; Var
             user = newUser;
         }
 
-        c.set('user', {
-            id: user.id,
-            uid: uid,
-            email: email,
-            role: user.role,
-            familyId: user.familyId,
-        });
+        if (user) {
+            c.set('user', {
+                id: user.id,
+                uid: uid,
+                email: email,
+                role: user.role,
+                familyId: user.familyId,
+            });
+
+            // Handle Ledger Context
+            const ledgerIdHeader = c.req.header('X-Ledger-Id');
+            if (ledgerIdHeader) {
+                const ledgerId = parseInt(ledgerIdHeader);
+                if (!isNaN(ledgerId)) {
+                    // Check membership
+                    const membership = await db.query.ledgerUsers.findFirst({
+                        where: and(
+                            eq(schema.ledgerUsers.userId, user.id),
+                            eq(schema.ledgerUsers.ledgerId, ledgerId)
+                        ),
+                        with: {
+                            ledger: true
+                        }
+                    });
+
+                    if (membership) {
+                        c.set('ledger', {
+                            id: membership.ledgerId,
+                            role: membership.role,
+                            name: membership.ledger.name
+                        });
+
+                        // Update last accessed
+                        // Fire and forget update
+                        c.executionCtx.waitUntil(
+                            db.update(schema.ledgerUsers)
+                                .set({ lastAccessedAt: new Date() })
+                                .where(and(
+                                    eq(schema.ledgerUsers.userId, user.id),
+                                    eq(schema.ledgerUsers.ledgerId, ledgerId)
+                                ))
+                                .run()
+                        );
+                    } else {
+                        // Provided Ledger ID but no membership -> 403 Forbidden
+                        return c.json({ error: 'Access to this ledger denied' }, 403);
+                    }
+                }
+            }
+        }
 
         await next();
     } catch (err) {

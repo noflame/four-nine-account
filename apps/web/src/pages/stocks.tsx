@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StockDialog } from "@/components/stock-dialog";
@@ -9,6 +9,8 @@ import { Plus, TrendingUp } from "lucide-react";
 
 export default function StocksPage() {
     const { user } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [holdings, setHoldings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -16,11 +18,7 @@ export default function StocksPage() {
     const fetchHoldings = async () => {
         if (!user) return;
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
+            const client = await getClient();
 
             const res = await client.stocks.$get();
             if (res.ok) {
@@ -36,7 +34,7 @@ export default function StocksPage() {
 
     useEffect(() => {
         fetchHoldings();
-    }, [user]);
+    }, [user, currentLedgerId]);
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val / 10000);

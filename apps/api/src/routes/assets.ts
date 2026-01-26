@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { createDb, accounts, users } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
@@ -25,52 +25,21 @@ const accountSchema = z.object({
 // GET /api/assets
 app.get('/', async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
 
-    // Get internal user ID first
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-
-    // Check child role
-    let result;
-    if (userRecord.familyId) {
-        const familyMembers = await db.query.users.findMany({
-            where: eq(users.familyId, userRecord.familyId),
-            columns: { id: true }
-        });
-        const memberIds = familyMembers.map(m => m.id);
-
-        let whereClause;
-        if (userRecord.role === 'child') {
-            // Child: Only isVisibleToChild accounts in the family
-            whereClause = and(inArray(accounts.userId, memberIds), eq(accounts.isVisibleToChild, true));
-        } else {
-            // Member/Admin: All family accounts
-            whereClause = inArray(accounts.userId, memberIds);
-        }
-
-        result = await db.query.accounts.findMany({
-            where: whereClause,
-            with: {
-                user: {
-                    columns: { name: true }
-                }
-            }
-        });
-    } else {
-        // Independent user
-        result = await db.query.accounts.findMany({
-            where: eq(accounts.userId, userRecord.id),
-            with: {
-                user: {
-                    columns: { name: true }
-                }
-            }
-        });
+    if (!ledger) {
+        return c.json({ error: 'Ledger context required' }, 403);
     }
+
+    const result = await db.query.accounts.findMany({
+        where: eq(accounts.ledgerId, ledger.id),
+        with: {
+            user: {
+                columns: { name: true }
+            }
+        },
+        orderBy: [desc(accounts.updatedAt)]
+    });
 
     return c.json(result);
 });
@@ -79,17 +48,15 @@ app.get('/', async (c) => {
 app.post('/', zValidator('json', accountSchema), async (c) => {
     const db = createDb(c.env.DB);
     const user = c.get('user');
+    const ledger = c.get('ledger');
     const data = c.req.valid('json');
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child accounts cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot create assets' }, 403);
 
     const newAccount = await db.insert(accounts).values({
-        userId: userRecord.id,
+        userId: user.id,
+        ledgerId: ledger.id,
         name: data.name,
         type: data.type,
         currency: data.currency,
@@ -104,27 +71,19 @@ app.post('/', zValidator('json', accountSchema), async (c) => {
 // PATCH /api/assets/:id
 app.patch('/:id', zValidator('json', accountSchema.partial()), async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));
     const data = c.req.valid('json');
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot edit assets' }, 403);
 
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-
-    // Verify ownership
+    // Verify ownership/ledger scope
     const existingAccount = await db.query.accounts.findFirst({
-        where: eq(accounts.id, id),
-        with: { user: true }
+        where: and(eq(accounts.id, id), eq(accounts.ledgerId, ledger.id))
     });
 
-    if (!existingAccount) return c.json({ error: 'Account not found' }, 404);
-
-    const isOwner = existingAccount.userId === userRecord.id;
-    const isFamily = userRecord.familyId && existingAccount.user.familyId === userRecord.familyId;
-    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+    if (!existingAccount) return c.json({ error: 'Account not found in this ledger' }, 404);
 
     const updateData: any = { ...data, updatedAt: new Date() };
     if (data.balance !== undefined) {
@@ -142,32 +101,17 @@ app.patch('/:id', zValidator('json', accountSchema.partial()), async (c) => {
 // DELETE /api/assets/:id
 app.delete('/:id', async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-
-    // Verify ownership
-    const existingAccount = await db.query.accounts.findFirst({
-        where: eq(accounts.id, id),
-        with: { user: true }
-    });
-
-    if (!existingAccount) return c.json({ error: 'Account not found' }, 404);
-
-    const isOwner = existingAccount.userId === userRecord.id;
-    const isFamily = userRecord.familyId && existingAccount.user.familyId === userRecord.familyId;
-    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot delete assets' }, 403);
 
     const result = await db.delete(accounts)
-        .where(eq(accounts.id, id))
+        .where(and(eq(accounts.id, id), eq(accounts.ledgerId, ledger.id)))
         .returning();
 
-    if (result.length === 0) return c.json({ error: 'Account not found' }, 404);
+    if (result.length === 0) return c.json({ error: 'Account not found in this ledger' }, 404);
 
     return c.json({ success: true, deletedId: id });
 });

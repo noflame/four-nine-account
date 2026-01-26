@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, CreditCard, TrendingUp, Activity } from "lucide-react";
 
 export default function DashboardPage() {
     const { user } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -14,9 +16,7 @@ export default function DashboardPage() {
         const fetchData = async () => {
             if (!user) return;
             try {
-                const token = await user.getIdToken();
-                const apiUrl = import.meta.env.VITE_API_URL || '/api';
-                const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+                const client = await getClient();
                 const res = await client.dashboard.$get();
                 if (res.ok) {
                     setData(await res.json());
@@ -28,7 +28,7 @@ export default function DashboardPage() {
             }
         };
         fetchData();
-    }, [user]);
+    }, [user, currentLedgerId]);
 
     if (loading) {
         return <div className="p-8">Loading dashboard...</div>;

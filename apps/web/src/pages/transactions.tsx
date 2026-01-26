@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, ArrowRightLeft, TrendingUp, TrendingDown, Pencil } from "lucide-react";
@@ -9,6 +9,8 @@ import { TransactionDialog } from "@/components/transaction-dialog";
 
 export default function TransactionsPage() {
     const { user, dbUser } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingTransaction, setEditingTransaction] = useState<any>(null); // State for edit
@@ -17,12 +19,7 @@ export default function TransactionsPage() {
     const fetchTransactions = async () => {
         if (!user) return;
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
-
+            const client = await getClient();
             const res = await client.transactions.$get();
             if (res.ok) {
                 const data = await res.json();
@@ -50,18 +47,14 @@ export default function TransactionsPage() {
         const handleUpdate = () => fetchTransactions();
         window.addEventListener('transaction-updated', handleUpdate);
         return () => window.removeEventListener('transaction-updated', handleUpdate);
-    }, [user]);
+    }, [user, currentLedgerId]);
 
     const handleDelete = async (id: number) => {
         if (!user) return;
         if (!confirm("Are you sure you want to delete this transaction? Balance will be reverted.")) return;
 
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
+            const client = await getClient();
 
             const res = await client.transactions[':id'].$delete({
                 param: { id: id.toString() }
@@ -136,29 +129,30 @@ export default function TransactionsPage() {
                                             tx.destinationAccountId ? '+' : '-'}
                                         {formatAmount(tx.amount)}
                                     </span>
-                                    <Pencil className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(tx.id)}>
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingTransaction(tx)}>
+                                        <Pencil className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(tx.id)}>
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </CardContent>
                         </Card>
-            ))
+                    ))
                 )}
-        </div>
+            </div>
 
 
-            {/* Edit Dialog */ }
-    <TransactionDialog
-        open={!!editingTransaction}
-        onOpenChange={(open) => !open && setEditingTransaction(null)}
-        transactionToEdit={editingTransaction}
-        onSuccess={() => {
-            fetchTransactions();
-            setEditingTransaction(null);
-        }}
-    />
+            {/* Edit Dialog */}
+            <TransactionDialog
+                open={!!editingTransaction}
+                onOpenChange={(open) => !open && setEditingTransaction(null)}
+                transactionToEdit={editingTransaction}
+                onSuccess={() => {
+                    fetchTransactions();
+                    setEditingTransaction(null);
+                }}
+            />
         </div >
     );
 }

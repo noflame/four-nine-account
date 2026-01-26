@@ -4,11 +4,13 @@ import usersRoute from './routes/users';
 import assetsRoute from './routes/assets';
 import categoriesRoute from './routes/categories';
 import transactionsRoute from './routes/transactions';
-import cardsRoute from './routes/cards';
+import cards_ from './routes/cards';
 import dashboardRoute from './routes/dashboard';
 
-import stocksRoute from './routes/stocks';
-import familyRoute from './routes/family';
+import stocks_ from './routes/stocks';
+import family_ from './routes/family';
+import migration_ from './routes/migration'; // Added migrationRoute import
+import ledgers_ from './routes/ledgers';
 
 type Bindings = {
     DB: D1Database;
@@ -27,9 +29,11 @@ const routes = app
     .route('/assets', assetsRoute)
     .route('/categories', categoriesRoute)
     .route('/transactions', transactionsRoute)
-    .route('/cards', cardsRoute)
-    .route('/stocks', stocksRoute)
-    .route('/family', familyRoute)
+    .route('/api/cards', cards_)
+    .route('/api/stocks', stocks_)
+    .route('/api/family', family_)
+    .route('/api/migration', migration_)
+    .route('/api/ledgers', ledgers_)
     .route('/dashboard', dashboardRoute);
 
 export type AppType = typeof routes;

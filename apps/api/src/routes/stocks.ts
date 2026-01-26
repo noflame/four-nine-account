@@ -37,28 +37,12 @@ const sellStockSchema = z.object({
 // GET /api/stocks - List all holdings
 app.get('/', async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
+    const ledger = c.get('ledger');
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json([]); // Child cannot see stocks
-
-    let whereCondition = eq(stocks.userId, userRecord.id);
-
-    if (userRecord.familyId) {
-        const familyMembers = await db.query.users.findMany({
-            where: eq(users.familyId, userRecord.familyId),
-            columns: { id: true }
-        });
-        const memberIds = familyMembers.map(m => m.id);
-        whereCondition = inArray(stocks.userId, memberIds);
-    }
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
 
     const holdings = await db.query.stocks.findMany({
-        where: whereCondition,
+        where: eq(stocks.ledgerId, ledger.id),
         orderBy: [desc(stocks.ownerLabel), desc(stocks.id)],
         with: {
             user: {
@@ -74,16 +58,13 @@ app.get('/', async (c) => {
 app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
     const db = createDb(c.env.DB);
     const user = c.get('user');
+    const ledger = c.get('ledger');
     const data = c.req.valid('json');
     const ownerLabel = data.ownerLabel || 'Self';
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot buy stocks' }, 403);
 
-    // Scaling Factor: 10000
     const sharesInt = Math.round(data.shares * 10000);
     const priceInt = Math.round(data.price * 10000);
     const totalCostInt = Math.round((sharesInt * priceInt) / 10000);
@@ -91,19 +72,19 @@ app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
     try {
         // 1. Deduct Cash
         const account = await db.query.accounts.findFirst({
-            where: and(eq(accounts.id, data.sourceAccountId), eq(accounts.userId, userRecord.id))
+            where: and(eq(accounts.id, data.sourceAccountId), eq(accounts.ledgerId, ledger.id))
         });
 
-        if (!account) return c.json({ error: 'Source account not found' }, 404);
+        if (!account) return c.json({ error: 'Source account not found in this ledger' }, 404);
         if (account.balance < totalCostInt) return c.json({ error: 'Insufficient funds' }, 400);
 
         await db.run(sql`UPDATE accounts SET balance = balance - ${totalCostInt} WHERE id = ${data.sourceAccountId}`);
 
         // 2. Update/Create Stock Holding (Avg Cost Calculation)
-        // Match ticker AND ownerLabel
+        // Match ticker AND ownerLabel AND ledgerId
         const existingStock = await db.query.stocks.findFirst({
             where: and(
-                eq(stocks.userId, userRecord.id),
+                eq(stocks.ledgerId, ledger.id),
                 eq(stocks.ticker, data.ticker),
                 eq(stocks.ownerLabel, ownerLabel)
             ),
@@ -123,7 +104,8 @@ app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
                 .where(eq(stocks.id, existingStock.id));
         } else {
             await db.insert(stocks).values({
-                userId: userRecord.id,
+                userId: user.id,
+                ledgerId: ledger.id,
                 ticker: data.ticker,
                 shares: sharesInt,
                 avgCost: priceInt,
@@ -133,7 +115,8 @@ app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
 
         // 3. Record Transaction
         await db.insert(transactions).values({
-            userId: userRecord.id,
+            userId: user.id,
+            ledgerId: ledger.id,
             date: data.date,
             amount: totalCostInt,
             description: data.description || `Buy ${data.ticker}: ${data.shares} @ ${data.price} (${ownerLabel})`,
@@ -151,14 +134,12 @@ app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
 app.post('/sell', zValidator('json', sellStockSchema), async (c) => {
     const db = createDb(c.env.DB);
     const user = c.get('user');
+    const ledger = c.get('ledger');
     const data = c.req.valid('json');
     const ownerLabel = data.ownerLabel || 'Self';
 
-    const userRecord = await db.query.users.findFirst({
-        where: eq(users.firebaseUid, user.uid),
-    });
-    if (!userRecord) return c.json({ error: 'User not found' }, 404);
-    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
+    if (!ledger) return c.json({ error: 'Ledger context required' }, 403);
+    if (ledger.role === 'viewer') return c.json({ error: 'Viewers cannot sell stocks' }, 403);
 
     const sharesInt = Math.round(data.shares * 10000);
     const priceInt = Math.round(data.price * 10000);
@@ -167,7 +148,7 @@ app.post('/sell', zValidator('json', sellStockSchema), async (c) => {
     try {
         const existingStock = await db.query.stocks.findFirst({
             where: and(
-                eq(stocks.userId, userRecord.id),
+                eq(stocks.ledgerId, ledger.id),
                 eq(stocks.ticker, data.ticker),
                 eq(stocks.ownerLabel, ownerLabel)
             ),
@@ -176,6 +157,13 @@ app.post('/sell', zValidator('json', sellStockSchema), async (c) => {
         if (!existingStock || existingStock.shares < sharesInt) {
             return c.json({ error: 'Insufficient shares' }, 400);
         }
+
+        // Verify destination account
+        const account = await db.query.accounts.findFirst({
+            where: and(eq(accounts.id, data.destinationAccountId), eq(accounts.ledgerId, ledger.id))
+        });
+        if (!account) return c.json({ error: 'Destination account not found in this ledger' }, 404);
+
 
         // 1. Add Cash
         await db.run(sql`UPDATE accounts SET balance = balance + ${totalRevenueInt} WHERE id = ${data.destinationAccountId}`);
@@ -196,7 +184,8 @@ app.post('/sell', zValidator('json', sellStockSchema), async (c) => {
         const realizedPnL = totalRevenueInt - costBasis;
 
         await db.insert(transactions).values({
-            userId: userRecord.id,
+            userId: user.id,
+            ledgerId: ledger.id,
             date: data.date,
             amount: totalRevenueInt,
             description: data.description || `Sell ${data.ticker}: ${data.shares} @ ${data.price} (${ownerLabel}) (PnL: ${realizedPnL / 10000})`,

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,7 @@ interface TransactionDialogProps {
 
 export function TransactionDialog({ open, onOpenChange, onSuccess, transactionToEdit }: TransactionDialogProps) {
     const { user } = useAuth();
+    const { getClient } = useApiClient();
     const [type, setType] = useState<TransactionType>('expense');
     const [loading, setLoading] = useState(false);
 
@@ -58,11 +58,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
     useEffect(() => {
         if (open && user) {
             const fetchData = async () => {
-                const token = await user.getIdToken();
-                const apiUrl = import.meta.env.VITE_API_URL || '/api';
-                const client = hc<AppType>(apiUrl, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }) as any;
+                const client = await getClient();
 
                 const [accRes, catRes, cardRes] = await Promise.all([
                     client.assets.$get(),
@@ -192,11 +188,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
         setLoading(true);
 
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, {
-                headers: { Authorization: `Bearer ${token}` }
-            }) as any;
+            const client = await getClient();
 
             const payload: any = {
                 type,

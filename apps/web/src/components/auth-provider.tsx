@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, onAuthStateChanged } from "firebase/auth";
+import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { hc } from "hono/client";
 import type { AppType } from "@lin-fan/api";
@@ -8,12 +8,14 @@ type AuthContextType = {
     user: User | null;
     loading: boolean;
     dbUser: any | null; // Type this properly with shared types later
+    logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
     dbUser: null,
+    logout: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -63,8 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => unsubscribe();
     }, []);
 
+    const logout = () => signOut(auth);
+
     return (
-        <AuthContext.Provider value={{ user, loading, dbUser }}>
+        <AuthContext.Provider value={{ user, loading, dbUser, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );

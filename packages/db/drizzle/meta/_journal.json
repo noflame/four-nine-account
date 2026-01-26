@@ -43,6 +43,13 @@
       "when": 1769376065752,
       "tag": "0005_kind_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1769431662597,
+      "tag": "0006_keen_chronomancer",
+      "breakpoints": true
     }
   ]
 }
