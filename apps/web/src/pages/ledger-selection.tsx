@@ -101,6 +101,22 @@ export default function LedgerSelectionPage() {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Existing Ledgers */}
+                    {ledgers.map(ledger => (
+                        <Card key={ledger.id} className="flex flex-col hover:border-primary cursor-pointer transition-colors relative group" onClick={() => handleSelect(ledger)}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Wallet className="h-5 w-5" />
+                                    {ledger.name}
+                                </CardTitle>
+                                <CardDescription>{ledger.role === 'owner' ? 'Owner' : 'Member'}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                {ledger.hasPassword && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded dark:bg-yellow-900 dark:text-yellow-100">Password Protected</span>}
+                            </CardContent>
+                        </Card>
+                    ))}
+
                     {/* Create New Block */}
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
@@ -129,22 +145,6 @@ export default function LedgerSelectionPage() {
                             </form>
                         </DialogContent>
                     </Dialog>
-
-                    {/* Existing Ledgers */}
-                    {ledgers.map(ledger => (
-                        <Card key={ledger.id} className="flex flex-col hover:border-primary cursor-pointer transition-colors relative group" onClick={() => handleSelect(ledger)}>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Wallet className="h-5 w-5" />
-                                    {ledger.name}
-                                </CardTitle>
-                                <CardDescription>{ledger.role === 'owner' ? 'Owner' : 'Member'}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-1">
-                                {ledger.hasPassword && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded dark:bg-yellow-900 dark:text-yellow-100">Password Protected</span>}
-                            </CardContent>
-                        </Card>
-                    ))}
                 </div>
 
                 <div className="flex justify-center mt-8">

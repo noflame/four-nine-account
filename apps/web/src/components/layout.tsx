@@ -55,7 +55,7 @@ export default function Layout() {
 
                 {/* FAB: Floating Action Button for Transactions */}
                 {dbUser?.role !== 'child' && (
-                    <div className="absolute bottom-6 right-6 z-50">
+                    <div className="fixed bottom-8 right-6 z-50">
                         <Button
                             size="icon"
                             className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
