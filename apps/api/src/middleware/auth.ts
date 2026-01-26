@@ -9,6 +9,8 @@ export type AuthVariables = {
         id: number;
         uid: string;
         email?: string;
+        role: 'admin' | 'member' | 'child';
+        familyId?: number | null;
     };
     // Helper to get D1 Database (inferred from index.ts usually, but good to have)
     DB: D1Database;
@@ -60,6 +62,8 @@ export const firebaseAuth = createMiddleware<{ Bindings: { DB: D1Database }; Var
             id: user.id,
             uid: uid,
             email: email,
+            role: user.role,
+            familyId: user.familyId,
         });
 
         await next();

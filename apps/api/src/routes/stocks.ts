@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import { createDb, stocks, transactions, users, accounts } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
@@ -44,10 +44,27 @@ app.get('/', async (c) => {
     });
 
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json([]); // Child cannot see stocks
+
+    let whereCondition = eq(stocks.userId, userRecord.id);
+
+    if (userRecord.familyId) {
+        const familyMembers = await db.query.users.findMany({
+            where: eq(users.familyId, userRecord.familyId),
+            columns: { id: true }
+        });
+        const memberIds = familyMembers.map(m => m.id);
+        whereCondition = inArray(stocks.userId, memberIds);
+    }
 
     const holdings = await db.query.stocks.findMany({
-        where: eq(stocks.userId, userRecord.id),
+        where: whereCondition,
         orderBy: [desc(stocks.ownerLabel), desc(stocks.id)],
+        with: {
+            user: {
+                columns: { name: true }
+            }
+        }
     });
 
     return c.json(holdings);
@@ -64,6 +81,7 @@ app.post('/buy', zValidator('json', buyStockSchema), async (c) => {
         where: eq(users.firebaseUid, user.uid),
     });
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
 
     // Scaling Factor: 10000
     const sharesInt = Math.round(data.shares * 10000);
@@ -140,6 +158,7 @@ app.post('/sell', zValidator('json', sellStockSchema), async (c) => {
         where: eq(users.firebaseUid, user.uid),
     });
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
 
     const sharesInt = Math.round(data.shares * 10000);
     const priceInt = Math.round(data.price * 10000);

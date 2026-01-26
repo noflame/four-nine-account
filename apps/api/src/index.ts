@@ -8,6 +8,7 @@ import cardsRoute from './routes/cards';
 import dashboardRoute from './routes/dashboard';
 
 import stocksRoute from './routes/stocks';
+import familyRoute from './routes/family';
 
 type Bindings = {
     DB: D1Database;
@@ -28,6 +29,7 @@ const routes = app
     .route('/transactions', transactionsRoute)
     .route('/cards', cardsRoute)
     .route('/stocks', stocksRoute)
+    .route('/family', familyRoute)
     .route('/dashboard', dashboardRoute);
 
 export type AppType = typeof routes;

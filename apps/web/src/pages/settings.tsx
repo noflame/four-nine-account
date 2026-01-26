@@ -291,6 +291,9 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
 
+            {/* Family Management */}
+            <FamilySettings user={user} />
+
             <Card>
                 <CardHeader>
                     <CardTitle>Account</CardTitle>
@@ -303,5 +306,206 @@ export default function SettingsPage() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+function FamilySettings({ user }: { user: any }) {
+    const [family, setFamily] = useState<any>(null);
+    const [members, setMembers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [inviteCode, setInviteCode] = useState("");
+    const [familyName, setFamilyName] = useState("");
+    const [mode, setMode] = useState<'view' | 'create' | 'join'>('view');
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchFamily = async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const token = await user.getIdToken();
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const res = await client.family.members.$get();
+            if (res.ok) {
+                const data = await res.json();
+                if (data.family) {
+                    setFamily(data.family);
+                    setMembers(data.members);
+                    setMode('view');
+                } else {
+                    setFamily(null);
+                    setMembers([]);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchFamily();
+    }, [user]);
+
+    const handleCreate = async () => {
+        if (!user || !familyName) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const token = await user.getIdToken();
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const res = await client.family.create.$post({
+                json: { name: familyName }
+            });
+            if (res.ok) {
+                await fetchFamily();
+            } else {
+                const err = await res.json();
+                setError(err.error || 'Failed to create family');
+            }
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleJoin = async () => {
+        if (!user || !inviteCode) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const token = await user.getIdToken();
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const res = await client.family.join.$post({
+                json: { inviteCode }
+            });
+            if (res.ok) {
+                await fetchFamily();
+            } else {
+                const err = await res.json();
+                setError(err.error || 'Failed to join family');
+            }
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading && !family && mode === 'view') {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Family Management</CardTitle></CardHeader>
+                <CardContent>Loading...</CardContent>
+            </Card>
+        );
+    }
+
+    if (!family) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Family Management</CardTitle>
+                    <CardDescription>Join a family to share assets and transactions.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {error && <p className="text-sm text-red-600">{error}</p>}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 border rounded-lg space-y-4">
+                            <h3 className="font-medium">Create a new Family</h3>
+                            <Input
+                                placeholder="Family Name (e.g. Lin Family)"
+                                value={familyName}
+                                onChange={e => setFamilyName(e.target.value)}
+                            />
+                            <Button onClick={handleCreate} disabled={loading || !familyName}>
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Family'}
+                            </Button>
+                        </div>
+
+                        <div className="p-4 border rounded-lg space-y-4">
+                            <h3 className="font-medium">Join existing Family</h3>
+                            <Input
+                                placeholder="Enter Invite Code"
+                                value={inviteCode}
+                                onChange={e => setInviteCode(e.target.value)}
+                            />
+                            <Button variant="outline" onClick={handleJoin} disabled={loading || !inviteCode}>
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Join Family'}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                    <span>{family.name}</span>
+                    <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded">
+                        Code: {family.inviteCode}
+                    </span>
+                </CardTitle>
+                <CardDescription>Manage your family members and roles.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <h3 className="font-medium">Members</h3>
+                    <div className="space-y-2">
+                        {members.map((m: any) => (
+                            <div key={m.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div>
+                                    <p className="font-medium">{m.name} {m.id === user.id && '(You)'}</p>
+                                    <p className="text-sm text-gray-500">{m.email}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded uppercase">
+                                        {m.role}
+                                    </span>
+                                    {/* Admin actions could go here */}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-700">
+                        <p>Share the invite code <strong>{family.inviteCode}</strong> with your spouse to link accounts.</p>
+                    </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                    <Button variant="destructive" size="sm" onClick={async () => {
+                        if (!confirm("Are you sure you want to leave this family?")) return;
+                        setLoading(true);
+                        try {
+                            const token = await user.getIdToken();
+                            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+                            const res = await client.family.leave.$post();
+                            if (res.ok) {
+                                await fetchFamily();
+                            } else {
+                                const err = await res.json();
+                                setError(err.error || 'Failed to leave family');
+                            }
+                        } catch (err: any) {
+                            setError(err.message);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }}>
+                        Leave Family
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     );
 }

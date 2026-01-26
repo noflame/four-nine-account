@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { createDb, accounts, users } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
@@ -34,9 +34,43 @@ app.get('/', async (c) => {
 
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
 
-    const result = await db.query.accounts.findMany({
-        where: eq(accounts.userId, userRecord.id),
-    });
+    // Check child role
+    let result;
+    if (userRecord.familyId) {
+        const familyMembers = await db.query.users.findMany({
+            where: eq(users.familyId, userRecord.familyId),
+            columns: { id: true }
+        });
+        const memberIds = familyMembers.map(m => m.id);
+
+        let whereClause;
+        if (userRecord.role === 'child') {
+            // Child: Only isVisibleToChild accounts in the family
+            whereClause = and(inArray(accounts.userId, memberIds), eq(accounts.isVisibleToChild, true));
+        } else {
+            // Member/Admin: All family accounts
+            whereClause = inArray(accounts.userId, memberIds);
+        }
+
+        result = await db.query.accounts.findMany({
+            where: whereClause,
+            with: {
+                user: {
+                    columns: { name: true }
+                }
+            }
+        });
+    } else {
+        // Independent user
+        result = await db.query.accounts.findMany({
+            where: eq(accounts.userId, userRecord.id),
+            with: {
+                user: {
+                    columns: { name: true }
+                }
+            }
+        });
+    }
 
     return c.json(result);
 });
@@ -52,6 +86,7 @@ app.post('/', zValidator('json', accountSchema), async (c) => {
     });
 
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json({ error: 'Child accounts cannot perform this action' }, 403);
 
     const newAccount = await db.insert(accounts).values({
         userId: userRecord.id,
@@ -81,10 +116,15 @@ app.patch('/:id', zValidator('json', accountSchema.partial()), async (c) => {
 
     // Verify ownership
     const existingAccount = await db.query.accounts.findFirst({
-        where: and(eq(accounts.id, id), eq(accounts.userId, userRecord.id)),
+        where: eq(accounts.id, id),
+        with: { user: true }
     });
 
     if (!existingAccount) return c.json({ error: 'Account not found' }, 404);
+
+    const isOwner = existingAccount.userId === userRecord.id;
+    const isFamily = userRecord.familyId && existingAccount.user.familyId === userRecord.familyId;
+    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
 
     const updateData: any = { ...data, updatedAt: new Date() };
     if (data.balance !== undefined) {
@@ -112,8 +152,19 @@ app.delete('/:id', async (c) => {
     if (!userRecord) return c.json({ error: 'User not found' }, 404);
 
     // Verify ownership
+    const existingAccount = await db.query.accounts.findFirst({
+        where: eq(accounts.id, id),
+        with: { user: true }
+    });
+
+    if (!existingAccount) return c.json({ error: 'Account not found' }, 404);
+
+    const isOwner = existingAccount.userId === userRecord.id;
+    const isFamily = userRecord.familyId && existingAccount.user.familyId === userRecord.familyId;
+    if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+
     const result = await db.delete(accounts)
-        .where(and(eq(accounts.id, id), eq(accounts.userId, userRecord.id)))
+        .where(eq(accounts.id, id))
         .returning();
 
     if (result.length === 0) return c.json({ error: 'Account not found' }, 404);

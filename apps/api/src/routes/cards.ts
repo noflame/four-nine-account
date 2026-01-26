@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, sql, and, isNull } from 'drizzle-orm';
-import { createDb, creditCards, transactions, accounts } from '@lin-fan/db';
+import { eq, sql, and, isNull, inArray } from 'drizzle-orm';
+import { createDb, creditCards, transactions, accounts, users } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
 type Bindings = {
@@ -29,12 +29,32 @@ const payCardSchema = z.object({
 
 // GET /api/cards
 // List all cards with current liability balance
+// GET /api/cards
+// List all cards with current liability balance
 app.get('/', async (c) => {
     const db = createDb(c.env.DB);
-    const userId = c.get('user').id;
+    const user = c.get('user');
+
+    const userRecord = await db.query.users.findFirst({
+        where: eq(users.firebaseUid, user.uid),
+    });
+
+    if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json([]); // Child cannot see cards
 
     // Fetch cards (only active ones)
-    const cards = await db.select().from(creditCards).where(and(eq(creditCards.userId, userId), isNull(creditCards.deletedAt))).all();
+    let whereCondition = and(eq(creditCards.userId, userRecord.id), isNull(creditCards.deletedAt));
+
+    if (userRecord.familyId) {
+        const familyMembers = await db.query.users.findMany({
+            where: eq(users.familyId, userRecord.familyId),
+            columns: { id: true }
+        });
+        const memberIds = familyMembers.map(m => m.id);
+        whereCondition = and(inArray(creditCards.userId, memberIds), isNull(creditCards.deletedAt));
+    }
+
+    const cards = await db.select().from(creditCards).where(whereCondition).all();
 
     // Calculate balance for each card
     // Balance = Sum of transactions where creditCardId = card.id AND amount > 0 (expenses increase liability)
@@ -102,12 +122,19 @@ app.get('/', async (c) => {
 // POST /api/cards
 app.post('/', zValidator('json', createCardSchema), async (c) => {
     const db = createDb(c.env.DB);
-    const userId = c.get('user').id;
+    const user = c.get('user');
     const body = c.req.valid('json');
+
+    const userRecord = await db.query.users.findFirst({
+        where: eq(users.firebaseUid, user.uid),
+    });
+
+    if (!userRecord) return c.json({ error: 'User not found' }, 404);
+    if (userRecord.role === 'child') return c.json({ error: 'Child cannot perform this action' }, 403);
 
     try {
         const result = await db.insert(creditCards).values({
-            userId,
+            userId: userRecord.id, // Use userRecord.id
             name: body.name,
             billingDay: body.billingDay,
             paymentDay: body.paymentDay,
@@ -128,6 +155,23 @@ app.put('/:id', zValidator('json', createCardSchema), async (c) => {
     const body = c.req.valid('json');
 
     try {
+        const userRecord = await db.query.users.findFirst({
+            where: eq(users.id, userId),
+        });
+        if (!userRecord) return c.json({ error: 'User not found' }, 404);
+
+        // Verify ownership
+        const existingCard = await db.query.creditCards.findFirst({
+            where: eq(creditCards.id, cardId),
+            with: { user: true }
+        });
+
+        if (!existingCard) return c.json({ error: 'Card not found' }, 404);
+
+        const isOwner = existingCard.userId === userId;
+        const isFamily = userRecord.familyId && existingCard.user.familyId === userRecord.familyId;
+        if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
+
         const result = await db.update(creditCards)
             .set({
                 name: body.name,
@@ -135,7 +179,7 @@ app.put('/:id', zValidator('json', createCardSchema), async (c) => {
                 paymentDay: body.paymentDay,
                 creditLimit: Math.round(body.creditLimit * 10000),
             })
-            .where(and(eq(creditCards.id, cardId), eq(creditCards.userId, userId)))
+            .where(eq(creditCards.id, cardId))
             .returning();
 
         if (result.length === 0) {
@@ -155,13 +199,23 @@ app.delete('/:id', async (c) => {
     const userId = c.get('user').id;
     const cardId = parseInt(c.req.param('id'));
 
+    const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+    });
+    if (!userRecord) return c.json({ error: 'User not found' }, 404);
+
     try {
         // 1. Get Card
-        const card = await db.select().from(creditCards)
-            .where(and(eq(creditCards.id, cardId), eq(creditCards.userId, userId)))
-            .get();
+        const card = await db.query.creditCards.findFirst({
+            where: eq(creditCards.id, cardId),
+            with: { user: true }
+        });
 
         if (!card) return c.json({ error: 'Card not found' }, 404);
+
+        const isOwner = card.userId === userId;
+        const isFamily = userRecord.familyId && card.user.familyId === userRecord.familyId;
+        if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized' }, 403);
 
         // 2. Check Balance
         const txs = await db.select().from(transactions).where(eq(transactions.creditCardId, cardId)).all();
@@ -198,9 +252,24 @@ app.post('/:id/pay', zValidator('json', payCardSchema), async (c) => {
     const body = c.req.valid('json');
 
     try {
-        // 1. Check source account balance
-        const sourceAccount = await db.select().from(accounts).where(eq(accounts.id, body.sourceAccountId)).get();
+        // 1. Check source account balance and permission
+        const sourceAccount = await db.query.accounts.findFirst({
+            where: eq(accounts.id, body.sourceAccountId),
+            with: { user: true }
+        });
+
         if (!sourceAccount) return c.json({ error: 'Source account not found' }, 404);
+
+        const userRecord = await db.query.users.findFirst({
+            where: eq(users.id, userId),
+        });
+
+        if (!userRecord) return c.json({ error: 'User not found' }, 404);
+
+        // Verify Access to Source Account
+        const isOwner = sourceAccount.userId === userId;
+        const isFamily = userRecord.familyId && sourceAccount.user.familyId === userRecord.familyId;
+        if (!isOwner && !isFamily) return c.json({ error: 'Unauthorized access to source account' }, 403);
 
         if (sourceAccount.balance < body.amount) {
             return c.json({ error: 'Insufficient funds in source account' }, 400);

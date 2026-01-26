@@ -1,6 +1,18 @@
 import { integer, text, sqliteTable, primaryKey } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
 
+// Families Table
+export const families = sqliteTable('families', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    inviteCode: text('invite_code').notNull().unique(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const familiesRelations = relations(families, ({ many }) => ({
+    members: many(users),
+}));
+
 // Users Table
 export const users = sqliteTable('users', {
     id: integer('id').primaryKey({ autoIncrement: true }),
@@ -8,13 +20,18 @@ export const users = sqliteTable('users', {
     email: text('email').notNull().unique(),
     firebaseUid: text('firebase_uid').unique(),
     role: text('role', { enum: ['admin', 'member', 'child'] }).notNull().default('member'),
+    familyId: integer('family_id').references(() => families.id),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
     accounts: many(accounts),
     transactions: many(transactions),
+    family: one(families, {
+        fields: [users.familyId],
+        references: [families.id],
+    }),
 }));
 
 // Accounts Table (Assets)

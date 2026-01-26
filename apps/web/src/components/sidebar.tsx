@@ -13,12 +13,23 @@ const sidebarItems = [
     { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
+import { useAuth } from "./auth-provider";
+
 export function Sidebar() {
     const location = useLocation();
+    const { dbUser } = useAuth();
 
     const handleLogout = () => {
         auth.signOut();
     };
+
+    // Filter items based on role
+    const filteredItems = sidebarItems.filter(item => {
+        if (dbUser?.role === 'child') {
+            return ['Dashboard', 'Assets', 'Transactions'].includes(item.label);
+        }
+        return true;
+    });
 
     return (
         <div className="flex h-full w-64 flex-col border-r bg-card text-card-foreground">
@@ -27,7 +38,7 @@ export function Sidebar() {
             </div>
 
             <nav className="flex-1 space-y-1 px-3">
-                {sidebarItems.map((item) => {
+                {filteredItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.href;
                     return (

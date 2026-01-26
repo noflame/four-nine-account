@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Plus, Menu } from "lucide-react";
 import { TransactionDialog } from "./transaction-dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-// import { useAuth } from "./auth-provider"; // TODO: Use for user-specific UI
+import { useAuth } from "./auth-provider";
 
 export default function Layout() {
+    const { dbUser } = useAuth();
     const [isTransactionOpen, setIsTransactionOpen] = useState(false);
 
     return (
@@ -41,16 +42,18 @@ export default function Layout() {
                 </div>
 
                 {/* FAB: Floating Action Button for Transactions */}
-                <div className="absolute bottom-6 right-6 z-50">
-                    <Button
-                        size="icon"
-                        className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
-                        onClick={() => setIsTransactionOpen(true)}
-                    >
-                        <Plus className="h-8 w-8 text-white" />
-                        <span className="sr-only">New Transaction</span>
-                    </Button>
-                </div>
+                {dbUser?.role !== 'child' && (
+                    <div className="absolute bottom-6 right-6 z-50">
+                        <Button
+                            size="icon"
+                            className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
+                            onClick={() => setIsTransactionOpen(true)}
+                        >
+                            <Plus className="h-8 w-8 text-white" />
+                            <span className="sr-only">New Transaction</span>
+                        </Button>
+                    </div>
+                )}
             </main>
 
             <TransactionDialog
