@@ -61,9 +61,9 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
                 const client = await getClient();
 
                 const [accRes, catRes, cardRes] = await Promise.all([
-                    client.assets.$get(),
-                    client.categories.$get(),
-                    client.cards.$get()
+                    client.api.assets.$get(),
+                    client.api.categories.$get(),
+                    client.api.cards.$get()
                 ]);
 
                 if (accRes.ok) setAccounts(await accRes.json());
@@ -212,13 +212,13 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
             let res;
             if (transactionToEdit) {
                 // Edit (PUT)
-                res = await client.transactions[':id'].$put({
+                res = await client.api.transactions[':id'].$put({
                     param: { id: transactionToEdit.id.toString() },
                     json: payload
                 });
             } else {
                 // Create (POST)
-                res = await client.transactions.$post({ json: payload });
+                res = await client.api.transactions.$post({ json: payload });
             }
 
             if (res.ok) {

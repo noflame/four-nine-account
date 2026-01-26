@@ -17,7 +17,7 @@ export default function DashboardPage() {
             if (!user) return;
             try {
                 const client = await getClient();
-                const res = await client.dashboard.$get();
+                const res = await client.api.dashboard.$get();
                 if (res.ok) {
                     setData(await res.json());
                 }

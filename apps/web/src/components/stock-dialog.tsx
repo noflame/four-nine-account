@@ -35,7 +35,7 @@ export function StockDialog({ open, onOpenChange, onSuccess }: StockDialogProps)
             // Fetch accounts for dropdown
             const fetchAccounts = async () => {
                 const client = await getClient();
-                const res = await client.assets.$get();
+                const res = await client.api.assets.$get();
                 if (res.ok) {
                     const data = await res.json();
                     setAccounts(data);
@@ -68,14 +68,14 @@ export function StockDialog({ open, onOpenChange, onSuccess }: StockDialogProps)
 
             let res;
             if (mode === 'buy') {
-                res = await client.stocks.buy.$post({
+                res = await client.api.stocks.buy.$post({
                     json: {
                         ...payload,
                         sourceAccountId: parseInt(accountId),
                     }
                 });
             } else {
-                res = await client.stocks.sell.$post({
+                res = await client.api.stocks.sell.$post({
                     json: {
                         ...payload,
                         destinationAccountId: parseInt(accountId),

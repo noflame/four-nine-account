@@ -54,7 +54,7 @@ export default function SettingsPage() {
             const token = await user.getIdToken();
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
             const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
-            const res = await client.categories.$get();
+            const res = await client.api.categories.$get();
             if (res.ok) setCategories(await res.json());
         } catch (err) {
             console.error(err);
@@ -76,7 +76,7 @@ export default function SettingsPage() {
             const token = await user.getIdToken();
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
             const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
-            const res = await client.categories.seed.$post();
+            const res = await client.api.categories.seed.$post();
             const data = await res.json();
 
             if (res.ok) {
@@ -104,7 +104,7 @@ export default function SettingsPage() {
             const token = await user.getIdToken();
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
             const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
-            const res = await client.categories.$post({
+            const res = await client.api.categories.$post({
                 json: { name: newCatName, type: newCatType, icon: newCatIcon }
             });
             if (res.ok) {
@@ -126,7 +126,7 @@ export default function SettingsPage() {
             const token = await user.getIdToken();
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
             const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
-            const res = await client.categories[':id'].$delete({ param: { id: id.toString() } });
+            const res = await client.api.categories[':id'].$delete({ param: { id: id.toString() } });
             if (res.ok) fetchCategories();
         } catch (err) {
             console.error(err);

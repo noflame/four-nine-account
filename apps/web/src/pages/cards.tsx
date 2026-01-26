@@ -54,8 +54,8 @@ export default function CardsPage() {
             const client = await getClient();
 
             const [cardsRes, accountsRes] = await Promise.all([
-                client.cards.$get(),
-                client.assets.$get()
+                client.api.cards.$get(),
+                client.api.assets.$get()
             ]);
 
             if (cardsRes.ok) setCards(await cardsRes.json());
@@ -93,7 +93,7 @@ export default function CardsPage() {
             let res;
             if (editingCard) {
                 // Edit (PUT)
-                res = await client.cards[':id'].$put({
+                res = await client.api.cards[':id'].$put({
                     param: { id: editingCard.id.toString() },
                     json: {
                         name: newName,
@@ -104,7 +104,7 @@ export default function CardsPage() {
                 });
             } else {
                 // Add (POST)
-                res = await client.cards.$post({
+                res = await client.api.cards.$post({
                     json: {
                         name: newName,
                         billingDay: parseInt(newBillingDay),
@@ -141,7 +141,7 @@ export default function CardsPage() {
         setSubmitting(true);
         try {
             const client = await getClient();
-            const res = await client.cards[':id'].$delete({
+            const res = await client.api.cards[':id'].$delete({
                 param: { id: editingCard.id.toString() }
             });
 
@@ -177,7 +177,7 @@ export default function CardsPage() {
         try {
             const client = await getClient();
 
-            const res = await client.cards[':id'].pay.$post({
+            const res = await client.api.cards[':id'].pay.$post({
                 param: { id: selectedCard.id.toString() },
                 json: {
                     sourceAccountId: parseInt(paySourceId),

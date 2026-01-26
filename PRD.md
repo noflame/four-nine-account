@@ -57,7 +57,7 @@
 - **帳戶管理**：
   - 綁定於特定 Ledger。
   - 支援現金、銀行、數位帳戶。
-  - 支援 `isVisibleToChild` (隱藏資產) 設定（保留給 Viewer 檢視限制擴充）。
+  - 支援現金、銀行、數位帳戶。
 - **資產總覽**：
   - 計算 Net Worth = (Assets Total - Liabilities Total)。
 

@@ -20,7 +20,7 @@ export default function TransactionsPage() {
         if (!user) return;
         try {
             const client = await getClient();
-            const res = await client.transactions.$get();
+            const res = await client.api.transactions.$get();
             if (res.ok) {
                 const data = await res.json();
                 console.log("Fetched transactions:", data); // Debug log
@@ -56,7 +56,7 @@ export default function TransactionsPage() {
         try {
             const client = await getClient();
 
-            const res = await client.transactions[':id'].$delete({
+            const res = await client.api.transactions[':id'].$delete({
                 param: { id: id.toString() }
             });
 

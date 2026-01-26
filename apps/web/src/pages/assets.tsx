@@ -30,7 +30,7 @@ export default function AssetsPage() {
         if (!user) return;
         try {
             const client = await getClient();
-            const res = await client.assets.$get();
+            const res = await client.api.assets.$get();
             if (res.ok) {
                 const data = await res.json();
                 setAccounts(data);
@@ -62,7 +62,7 @@ export default function AssetsPage() {
 
             if (editingAccount) {
                 // Update existing account
-                const res = await client.assets[':id'].$patch({
+                const res = await client.api.assets[':id'].$patch({
                     param: { id: editingAccount.id.toString() },
                     json: {
                         name: formData.name,
@@ -81,7 +81,7 @@ export default function AssetsPage() {
                 }
             } else {
                 // Create new account
-                const res = await client.assets.$post({
+                const res = await client.api.assets.$post({
                     json: {
                         name: formData.name,
                         type: formData.type as any,
@@ -119,7 +119,7 @@ export default function AssetsPage() {
 
         try {
             const client = await getClient();
-            const res = await client.assets[':id'].$delete({
+            const res = await client.api.assets[':id'].$delete({
                 param: { id: accountId.toString() }
             });
 

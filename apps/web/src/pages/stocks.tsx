@@ -20,7 +20,7 @@ export default function StocksPage() {
         try {
             const client = await getClient();
 
-            const res = await client.stocks.$get();
+            const res = await client.api.stocks.$get();
             if (res.ok) {
                 const data = await res.json();
                 setHoldings(data);

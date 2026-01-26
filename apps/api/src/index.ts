@@ -24,15 +24,15 @@ app.get('/', (c) => {
 });
 
 const routes = app
-    .route('/users', usersRoute)
-    .route('/assets', assetsRoute)
-    .route('/categories', categoriesRoute)
-    .route('/transactions', transactionsRoute)
+    .route('/api/users', usersRoute)
+    .route('/api/assets', assetsRoute)
+    .route('/api/categories', categoriesRoute)
+    .route('/api/transactions', transactionsRoute)
     .route('/api/cards', cards_)
     .route('/api/stocks', stocks_)
     .route('/api/migration', migration_)
     .route('/api/ledgers', ledgers_)
-    .route('/dashboard', dashboardRoute);
+    .route('/api/dashboard', dashboardRoute);
 
 export type AppType = typeof routes;
 
