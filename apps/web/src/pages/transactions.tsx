@@ -6,14 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, ArrowRightLeft, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { TransactionDialog } from "@/components/transaction-dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function TransactionsPage() {
-    const { user, dbUser } = useAuth();
+    const { user } = useAuth();
     const { currentLedgerId } = useLedger();
     const { getClient } = useApiClient();
     const [transactions, setTransactions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingTransaction, setEditingTransaction] = useState<any>(null); // State for edit
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<number | null>(null);
 
 
     const fetchTransactions = async () => {
@@ -49,21 +61,28 @@ export default function TransactionsPage() {
         return () => window.removeEventListener('transaction-updated', handleUpdate);
     }, [user, currentLedgerId]);
 
-    const handleDelete = async (id: number) => {
+    const handleDeleteClick = (id: number) => {
         if (!user) return;
-        if (!confirm("Are you sure you want to delete this transaction? Balance will be reverted.")) return;
+        setTransactionToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!user || !transactionToDelete) return;
 
         try {
             const client = await getClient();
 
             const res = await client.api.transactions[':id'].$delete({
-                param: { id: id.toString() }
+                param: { id: transactionToDelete.toString() }
             });
 
             if (res.ok) {
                 // Determine if we need to notify other components (like assets) to update balance
                 window.dispatchEvent(new Event('transaction-updated'));
                 fetchTransactions();
+                setDeleteDialogOpen(false);
+                setTransactionToDelete(null);
             }
         } catch (err) {
             console.error(err);
@@ -132,7 +151,7 @@ export default function TransactionsPage() {
                                     <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingTransaction(tx)}>
                                         <Pencil className="w-4 h-4" />
                                     </Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(tx.id)}>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(tx.id)}>
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -144,15 +163,32 @@ export default function TransactionsPage() {
 
 
             {/* Edit Dialog */}
-            <TransactionDialog
-                open={!!editingTransaction}
-                onOpenChange={(open) => !open && setEditingTransaction(null)}
-                transactionToEdit={editingTransaction}
-                onSuccess={() => {
-                    fetchTransactions();
-                    setEditingTransaction(null);
-                }}
-            />
+            {editingTransaction && (
+                <TransactionDialog
+                    open={true}
+                    onOpenChange={(open) => !open && setEditingTransaction(null)}
+                    transactionToEdit={editingTransaction}
+                    onSuccess={() => {
+                        fetchTransactions();
+                        setEditingTransaction(null);
+                    }}
+                />
+            )}
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will delete the transaction and revert any balance changes.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div >
     );
 }

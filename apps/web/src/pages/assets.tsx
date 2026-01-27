@@ -5,9 +5,19 @@ import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Wallet, Landmark, CreditCard } from "lucide-react";
 
 export default function AssetsPage() {
     const { user, dbUser } = useAuth();
@@ -16,15 +26,16 @@ export default function AssetsPage() {
     const [accounts, setAccounts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
     const [editingAccount, setEditingAccount] = useState<any | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
         type: "bank",
         balance: "",
         currency: "TWD"
     });
-
-    // ... (fetchAccounts and effects unchanged) ...
 
     const fetchAccounts = async () => {
         if (!user) return;
@@ -33,7 +44,11 @@ export default function AssetsPage() {
             const res = await client.api.assets.$get();
             if (res.ok) {
                 const data = await res.json();
-                setAccounts(data);
+                if (Array.isArray(data)) {
+                    setAccounts(data);
+                } else {
+                    setAccounts([]);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -56,6 +71,7 @@ export default function AssetsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+        setSubmitting(true);
 
         try {
             const client = await getClient();
@@ -68,8 +84,7 @@ export default function AssetsPage() {
                         name: formData.name,
                         type: formData.type as any,
                         currency: formData.currency,
-                        balance: parseFloat(formData.balance),
-                        isVisibleToChild: false
+                        balance: parseFloat(formData.balance)
                     }
                 });
 
@@ -86,8 +101,7 @@ export default function AssetsPage() {
                         name: formData.name,
                         type: formData.type as any,
                         currency: formData.currency,
-                        balance: parseFloat(formData.balance),
-                        isVisibleToChild: false
+                        balance: parseFloat(formData.balance)
                     }
                 });
 
@@ -99,6 +113,8 @@ export default function AssetsPage() {
             }
         } catch (err) {
             console.error(err);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -113,18 +129,25 @@ export default function AssetsPage() {
         setIsOpen(true);
     };
 
-    const handleDelete = async (accountId: number) => {
+    const handleDeleteClick = (accountId: number) => {
         if (!user) return;
-        if (!confirm('確定要刪除這個帳戶嗎？')) return;
+        setAccountToDelete(accountId);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!user || !accountToDelete) return;
 
         try {
             const client = await getClient();
             const res = await client.api.assets[':id'].$delete({
-                param: { id: accountId.toString() }
+                param: { id: accountToDelete.toString() }
             });
 
             if (res.ok) {
                 fetchAccounts();
+                setDeleteDialogOpen(false);
+                setAccountToDelete(null);
             }
         } catch (err) {
             console.error(err);
@@ -137,6 +160,10 @@ export default function AssetsPage() {
             setEditingAccount(null);
             setFormData({ name: "", type: "bank", balance: "", currency: "TWD" });
         }
+    };
+
+    const formatCurrency = (amount: number, currency: string) => {
+        return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: currency }).format(amount / 10000);
     };
 
     if (loading) return <div>Loading assets...</div>;
@@ -155,55 +182,72 @@ export default function AssetsPage() {
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>{editingAccount ? 'Edit Account' : 'Add New Account'}</DialogTitle>
+                                <DialogTitle>{editingAccount ? 'Edit Account' : 'Add Account'}</DialogTitle>
                                 <DialogDescription>
-                                    {editingAccount ? 'Update your account details below.' : 'Enter the details for your new account.'}
+                                    {editingAccount ? 'Update account details' : 'Add a new asset account to track'}
                                 </DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleSubmit} className="space-y-4 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Account Name</Label>
+                                    <Label>Name</Label>
                                     <Input
-                                        id="name"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="e.g., Cathay Bank"
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="e.g. Bank Savings"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="type">Type</Label>
-                                    <select
-                                        id="type"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                        value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    >
-                                        <option value="cash">Cash</option>
-                                        <option value="bank">Bank Account</option>
-                                        <option value="digital">Digital Wallet</option>
-                                    </select>
+                                    <Label>Type</Label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant={formData.type === 'cash' ? 'default' : 'outline'}
+                                            onClick={() => setFormData({ ...formData, type: 'cash' })}
+                                            className="flex-1"
+                                        >
+                                            Cash
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={formData.type === 'bank' ? 'default' : 'outline'}
+                                            onClick={() => setFormData({ ...formData, type: 'bank' })}
+                                            className="flex-1"
+                                        >
+                                            Bank
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={formData.type === 'digital' ? 'default' : 'outline'}
+                                            onClick={() => setFormData({ ...formData, type: 'digital' })}
+                                            className="flex-1"
+                                        >
+                                            Digital
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="balance">Current Balance</Label>
+                                    <Label>Balance</Label>
                                     <Input
-                                        id="balance"
                                         type="number"
-                                        step="0.01"
                                         value={formData.balance}
-                                        onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                                        placeholder="0.00"
+                                        onChange={e => setFormData({ ...formData, balance: e.target.value })}
+                                        placeholder="0"
                                         required
                                     />
                                 </div>
-                                <div className="flex justify-end gap-2 pt-4">
-                                    <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit">
-                                        {editingAccount ? 'Update Account' : 'Create Account'}
-                                    </Button>
+                                <div className="space-y-2">
+                                    <Label>Currency</Label>
+                                    <Input
+                                        value={formData.currency}
+                                        onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                                        placeholder="TWD"
+                                        required
+                                    />
                                 </div>
+                                <Button type="submit" className="w-full" disabled={submitting}>
+                                    {submitting ? (editingAccount ? 'Updating...' : 'Adding...') : (editingAccount ? 'Update Account' : 'Add Account')}
+                                </Button>
                             </form>
                         </DialogContent>
                     </Dialog>
@@ -217,38 +261,22 @@ export default function AssetsPage() {
                             <CardTitle className="text-sm font-medium">
                                 {account.name}
                             </CardTitle>
-                            <span className="text-xs text-muted-foreground uppercase bg-muted px-2 py-1 rounded">
-                                {account.type}
-                            </span>
+                            {account.type === 'cash' && <Wallet className="h-4 w-4 text-muted-foreground" />}
+                            {account.type === 'bank' && <Landmark className="h-4 w-4 text-muted-foreground" />}
+                            {account.type === 'digital' && <CreditCard className="h-4 w-4 text-muted-foreground" />}
                         </CardHeader>
                         <CardContent>
-                            {account.user?.name && (
-                                <div className="mb-2 text-xs text-muted-foreground flex items-center gap-1">
-                                    <span>Owner: {account.user.name}</span>
-                                </div>
-                            )}
-                            <div className="text-2xl font-bold mb-4">
-                                {new Intl.NumberFormat('zh-TW', { style: 'currency', currency: account.currency }).format(account.balance / 10000)}
-                            </div>
+                            <div className="text-2xl font-bold">{formatCurrency(account.balance, account.currency)}</div>
+                            <p className="text-xs text-muted-foreground capitalize">
+                                {account.type} Account
+                            </p>
                             {dbUser?.role !== 'child' && (
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => handleEdit(account)}
-                                    >
-                                        <Pencil className="h-4 w-4 mr-1" />
-                                        Edit
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(account)}>
+                                        <Pencil className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 text-destructive hover:text-destructive"
-                                        onClick={() => handleDelete(account.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Delete
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(account.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
                             )}
@@ -256,6 +284,22 @@ export default function AssetsPage() {
                     </Card>
                 ))}
             </div>
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the account
+                            and remove all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

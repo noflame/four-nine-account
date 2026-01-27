@@ -8,6 +8,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
     const { user } = useAuth();
@@ -17,6 +27,8 @@ export default function SettingsPage() {
     const [categories, setCategories] = useState<any[]>([]);
     const [loadingCats, setLoadingCats] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
 
     // New Category Form
     const [newCatName, setNewCatName] = useState("");
@@ -119,15 +131,23 @@ export default function SettingsPage() {
         }
     };
 
-    const handleDeleteCategory = async (id: number) => {
-        if (!user) return;
-        if (!confirm("Delete this category? Transactions using it will lose the category tag.")) return;
+    const handleDeleteCategoryClick = (id: number) => {
+        setCategoryToDelete(id);
+        setDeleteAlertOpen(true);
+    };
+
+    const confirmDeleteCategory = async () => {
+        if (!user || !categoryToDelete) return;
         try {
             const token = await user.getIdToken();
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
             const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
-            const res = await client.api.categories[':id'].$delete({ param: { id: id.toString() } });
-            if (res.ok) fetchCategories();
+            const res = await client.api.categories[':id'].$delete({ param: { id: categoryToDelete.toString() } });
+            if (res.ok) {
+                fetchCategories();
+                setDeleteAlertOpen(false);
+                setCategoryToDelete(null);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -253,7 +273,7 @@ export default function SettingsPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleDeleteCategory(cat.id)}
+                                                onClick={() => handleDeleteCategoryClick(cat.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -278,7 +298,7 @@ export default function SettingsPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleDeleteCategory(cat.id)}
+                                                onClick={() => handleDeleteCategoryClick(cat.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -305,6 +325,21 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Category?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will remove the category tag from any existing transactions. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteCategory} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

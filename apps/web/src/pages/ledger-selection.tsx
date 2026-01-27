@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 // Removed Tabs imports as unused
 import { useApiClient } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -79,11 +80,11 @@ export default function LedgerSelectionPage() {
                 enterLedger(selectedLedgerToEnter.id);
                 setVerifyPasswordOpen(false);
             } else {
-                alert("Password Incorrect");
+                toast.error("Password Incorrect");
             }
         } catch (err) {
             console.error(err);
-            alert("Error verifying password");
+            toast.error("Error verifying password");
         }
     };
 

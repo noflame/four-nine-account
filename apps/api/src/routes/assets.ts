@@ -19,7 +19,6 @@ const accountSchema = z.object({
     type: z.enum(['cash', 'bank', 'digital']),
     currency: z.string().default('TWD'),
     balance: z.number(), // Input is actual value (e.g. 100), backend converts to x10000
-    isVisibleToChild: z.boolean().default(false),
 });
 
 // GET /api/assets
@@ -61,7 +60,6 @@ app.post('/', zValidator('json', accountSchema), async (c) => {
         type: data.type,
         currency: data.currency,
         balance: Math.round(data.balance * 10000), // Scale x10000
-        isVisibleToChild: data.isVisibleToChild,
         updatedAt: new Date(),
     }).returning();
 

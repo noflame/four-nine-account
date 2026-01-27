@@ -63,10 +63,7 @@ export const accounts = sqliteTable('accounts', {
     type: text('type', { enum: ['cash', 'bank', 'digital'] }).notNull(),
     currency: text('currency').notNull().default('TWD'),
     balance: integer('balance').notNull(), // x10000
-    isVisibleToChild: integer('is_visible_to_child', { mode: 'boolean' }).notNull().default(false),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-    // Private assets support
-    isPrivate: integer('is_private', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const accountsRelations = relations(accounts, ({ one, many }) => ({
