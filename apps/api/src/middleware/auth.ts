@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { decode } from 'hono/jwt';
-import { createDb, users, ledgerUsers, ledgers } from '@lin-fan/db';
+import { createDb, users } from '@lin-fan/db';
 import * as schema from '@lin-fan/db'; // Need full schema for relations
 import { eq, and } from 'drizzle-orm';
 
@@ -10,8 +10,6 @@ export type AuthVariables = {
         id: number;
         uid: string;
         email?: string;
-        role: 'admin' | 'member' | 'child';
-        familyId?: number | null;
     };
     ledger?: {
         id: number;
@@ -57,7 +55,6 @@ export const firebaseAuth = createMiddleware<{ Bindings: { DB: D1Database }; Var
                 name: email.split('@')[0], // Default name
                 email: email,
                 firebaseUid: uid,
-                role: 'member',
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }).returning();
@@ -69,8 +66,6 @@ export const firebaseAuth = createMiddleware<{ Bindings: { DB: D1Database }; Var
                 id: user.id,
                 uid: uid,
                 email: email,
-                role: user.role,
-                familyId: user.familyId,
             });
 
             // Handle Ledger Context

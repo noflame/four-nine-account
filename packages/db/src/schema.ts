@@ -48,7 +48,7 @@ export const users = sqliteTable('users', {
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
-export const usersRelations = relations(users, ({ many, one }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
     accounts: many(accounts),
     transactions: many(transactions),
     ledgers: many(ledgerUsers),

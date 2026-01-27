@@ -2,8 +2,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, and, desc } from 'drizzle-orm';
-import { createDb, ledgers, ledgerUsers, users } from '@lin-fan/db';
+import { eq, desc } from 'drizzle-orm';
+import { createDb, ledgers, ledgerUsers } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
 type Bindings = {
@@ -80,7 +80,6 @@ app.post('/', zValidator('json', createLedgerSchema), async (c) => {
 // POST /:id/verify - Verify password to enter
 app.post('/:id/verify', zValidator('json', accessLedgerSchema), async (c) => {
     const db = createDb(c.env.DB);
-    const user = c.get('user');
     const ledgerId = parseInt(c.req.param('id'));
     const { password } = c.req.valid('json');
 
