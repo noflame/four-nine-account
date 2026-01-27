@@ -32,7 +32,6 @@ app.post('/sync', async (c) => {
         name: currentUser.email?.split('@')[0] || 'New User',
         email: currentUser.email || '',
         firebaseUid: currentUser.uid,
-        role: 'member', // Default role
         createdAt: new Date(),
         updatedAt: new Date(),
     }).returning();
