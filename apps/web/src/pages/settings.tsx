@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { hc } from "hono/client";
-import { AppType } from "@lin-fan/api";
+import { useLedger } from "@/components/ledger-provider";
+import { useApiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -21,6 +21,8 @@ import {
 
 export default function SettingsPage() {
     const { user } = useAuth();
+    const { currentLedgerId } = useLedger();
+    const { getClient } = useApiClient();
     const [seeding, setSeeding] = useState(false);
     const [seedStatus, setSeedStatus] = useState<'success' | 'error' | null>(null);
     const [seedResult, setSeedResult] = useState<string | null>(null);
@@ -63,9 +65,7 @@ export default function SettingsPage() {
         if (!user) return;
         setLoadingCats(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
             const res = await client.api.categories.$get();
             if (res.ok) setCategories(await res.json());
         } catch (err) {
@@ -77,7 +77,7 @@ export default function SettingsPage() {
 
     useEffect(() => {
         fetchCategories();
-    }, [user]);
+    }, [user, currentLedgerId]);
 
     const handleSeedCategories = async () => {
         if (!user) return;
@@ -85,9 +85,7 @@ export default function SettingsPage() {
         setSeedResult(null);
         setSeedStatus(null);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
             const res = await client.api.categories.seed.$post();
             const data = await res.json();
 
@@ -113,9 +111,7 @@ export default function SettingsPage() {
         if (!user) return;
         setAdding(true);
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
             const res = await client.api.categories.$post({
                 json: { name: newCatName, type: newCatType, icon: newCatIcon }
             });
@@ -139,9 +135,7 @@ export default function SettingsPage() {
     const confirmDeleteCategory = async () => {
         if (!user || !categoryToDelete) return;
         try {
-            const token = await user.getIdToken();
-            const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const client = hc<AppType>(apiUrl, { headers: { Authorization: `Bearer ${token}` } }) as any;
+            const client = await getClient();
             const res = await client.api.categories[':id'].$delete({ param: { id: categoryToDelete.toString() } });
             if (res.ok) {
                 fetchCategories();
