@@ -19,7 +19,7 @@ export function useApiClient() {
         }
     }, [user]);
 
-    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+    const apiUrl = import.meta.env.VITE_API_URL || '/';
 
     // We can't easily wait for token in a sync return.
     // But hc returns a proxy. We can wrap the fetch?

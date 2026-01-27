@@ -39,7 +39,7 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
     const [currentLedgerId, setCurrentLedgerId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+    const apiUrl = import.meta.env.VITE_API_URL || '/';
 
     const fetchLedgers = async () => {
         if (!user) return;
