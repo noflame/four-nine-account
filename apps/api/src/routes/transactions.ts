@@ -64,10 +64,15 @@ app.post('/', zValidator('json', transactionSchema.extend({
 }).superRefine((data, ctx) => {
     // Re-implement logic validation for credit cards
     if (data.type === 'expense') {
-        if (!data.sourceAccountId && !data.creditCardId) {
+        if (data.creditCardId) {
+            // Force sourceAccount to null if it's a credit card expense
+            data.sourceAccountId = null;
+            data.destinationAccountId = null;
+        } else if (!data.sourceAccountId) {
+            // If NO credit card, then Source Account IS required
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Either Source Account or Credit Card is required for Expense",
+                message: "Source Account required if not using Credit Card",
                 path: ["sourceAccountId"]
             });
         }
@@ -215,7 +220,22 @@ app.delete('/:id', async (c) => {
 app.put('/:id', zValidator('json', transactionSchema.extend({
     creditCardId: z.number().optional(),
     installmentTotalMonths: z.number().optional().default(1),
+}).superRefine((data, ctx) => {
+    // Re-implement logic validation for credit cards
+    if (data.type === 'expense') {
+        if (data.creditCardId) {
+            data.sourceAccountId = null;
+            data.destinationAccountId = null;
+        } else if (!data.sourceAccountId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Source Account required if not using Credit Card",
+                path: ["sourceAccountId"]
+            });
+        }
+    }
 })), async (c) => {
+
     const db = createDb(c.env.DB);
     const ledger = c.get('ledger');
     const id = parseInt(c.req.param('id'));

@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useLedger } from "@/components/ledger-provider";
 import { useApiClient } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, ArrowRightLeft, TrendingUp, TrendingDown, Pencil } from "lucide-react";
 import { TransactionDialog } from "@/components/transaction-dialog";
+import { TransactionCard } from "@/components/transaction-card";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -95,12 +93,7 @@ export default function TransactionsPage() {
         return new Date(dateStr).toLocaleDateString('zh-TW');
     };
 
-    const formatAmount = (amount: number, currency = 'TWD') => {
-        return new Intl.NumberFormat('zh-TW', {
-            style: 'currency',
-            currency: currency
-        }).format(amount / 10000);
-    };
+
 
     return (
         <div className="space-y-6">
@@ -110,54 +103,50 @@ export default function TransactionsPage() {
                 {transactions.length === 0 ? (
                     <div className="text-center text-muted-foreground py-10">No transactions found.</div>
                 ) : (
-                    transactions.map((tx) => (
-                        <Card key={tx.id}>
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-2 rounded-full ${tx.sourceAccountId && tx.destinationAccountId ? 'bg-blue-100 text-blue-600' :
-                                        tx.destinationAccountId ? 'bg-green-100 text-green-600' :
-                                            'bg-red-100 text-red-600'
-                                        }`}>
-                                        {tx.sourceAccountId && tx.destinationAccountId ? <ArrowRightLeft className="w-5 h-5" /> :
-                                            tx.destinationAccountId ? <TrendingUp className="w-5 h-5" /> :
-                                                <TrendingDown className="w-5 h-5" />}
-                                    </div>
-                                    <div>
-                                        <div className="font-medium">{tx.description || (tx.category ? tx.category.name : 'Transfer')}</div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {formatDate(tx.date)} •
-                                            {tx.sourceAccountId && tx.destinationAccountId ? (
-                                                <span> {tx.sourceAccount?.name} → {tx.destinationAccount?.name}</span>
-                                            ) : tx.sourceAccountId ? (
-                                                <span> {tx.sourceAccount?.name}</span>
-                                            ) : (
-                                                <span> {tx.destinationAccount?.name}</span>
-                                            )}
-                                            {tx.user?.name && (
-                                                <span className="ml-2 bg-muted px-1.5 py-0.5 rounded text-xs">by {tx.user.name}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className={`font-bold ${tx.sourceAccountId && tx.destinationAccountId ? 'text-blue-600' :
-                                        tx.destinationAccountId ? 'text-green-600' :
-                                            'text-red-600'
-                                        }`}>
-                                        {tx.sourceAccountId && tx.destinationAccountId ? '' :
-                                            tx.destinationAccountId ? '+' : '-'}
-                                        {formatAmount(tx.amount)}
-                                    </span>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingTransaction(tx)}>
-                                        <Pencil className="w-4 h-4" />
-                                    </Button>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(tx.id)}>
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
+                    transactions.map((tx) => {
+                        let type: "payment" | "expense" | "income" | "transfer" = "expense";
+                        let amount = tx.amount / 10000;
+                        const isTransfer = tx.sourceAccountId && tx.destinationAccountId;
+                        const isPayment = tx.sourceAccountId && tx.creditCardId;
+                        const isIncome = !tx.sourceAccountId && tx.destinationAccountId;
+
+                        if (isPayment) type = "payment";
+                        else if (isTransfer) type = "transfer";
+                        else if (isIncome) type = "income";
+
+                        // Fix amount sign for display based on type
+                        if (type === 'expense') amount = -amount;
+                        // Income is positive. Transfer is just amount. Payment is just amount (or negative?). 
+                        // Let's rely on component logic: isNegative checks amount < 0.
+                        // Expense -> Negative
+                        // Income -> Positive
+                        // Payment -> Should show as reducing asset? Or neutral? User's component logic: isNegative shows Red '-' else Green '+'.
+                        // Payment is usually "Spent" from bank, so negative? But User wanted Purple icon.
+                        // Color logic in component handles icon, but amount color is Red/Green based on sign.
+                        // Detailed Logic:
+                        // Expense: Red, -, Red Icon
+                        // Income: Green, +, Green Icon
+                        // Transfer: Blue Icon, Blue Text (I added this logic in component).
+                        // Payment: Purple Icon. Amount Color? Usually Money Leaving Account. So Red?
+                        // If I pass negative amount, it will show Red text with '-'.
+                        if (type === 'payment') amount = -amount;
+
+                        return (
+                            <TransactionCard
+                                key={tx.id}
+                                title={tx.description || (tx.category ? tx.category.name : 'Transfer')}
+                                date={formatDate(tx.date)}
+                                amount={amount}
+                                fromAccount={tx.sourceAccount?.name}
+                                toAccount={isPayment ? tx.creditCard?.name : tx.destinationAccount?.name || tx.creditCard?.name} // Fallback for card expense?
+                                category={tx.category?.name}
+                                user={tx.user?.name}
+                                type={type}
+                                onEdit={() => setEditingTransaction(tx)}
+                                onDelete={() => handleDeleteClick(tx.id)}
+                            />
+                        )
+                    })
                 )}
             </div>
 
