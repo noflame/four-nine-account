@@ -10,7 +10,7 @@ import { toast } from "sonner";
 // Removed Tabs imports as unused
 import { useApiClient } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Plus, Wallet } from "lucide-react";
+import { LogOut, Plus, Wallet, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 
 export default function LedgerSelectionPage() {
@@ -26,6 +26,12 @@ export default function LedgerSelectionPage() {
     const [verifyPasswordOpen, setVerifyPasswordOpen] = useState(false);
     const [selectedLedgerToEnter, setSelectedLedgerToEnter] = useState<any>(null);
     const [passwordInput, setPasswordInput] = useState("");
+
+    // Delete flow state
+    const [ledgerToDelete, setLedgerToDelete] = useState<any>(null);
+    const [deletePassword, setDeletePassword] = useState("");
+    const [isDeletePasswordOpen, setIsDeletePasswordOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,6 +99,63 @@ export default function LedgerSelectionPage() {
         navigate('/');
     };
 
+    // Delete Handlers
+    const handleDeleteInit = (e: React.MouseEvent, ledger: any) => {
+        e.stopPropagation(); // Prevent card click
+        setLedgerToDelete(ledger);
+        setDeletePassword("");
+        
+        if (ledger.hasPassword) {
+            setIsDeletePasswordOpen(true);
+        } else {
+            setIsDeleteConfirmOpen(true);
+        }
+    };
+
+    const verifyDeletePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!ledgerToDelete) return;
+        
+        try {
+            const client = await getClient();
+            const res = await client.api.ledgers[':id'].verify.$post({
+                param: { id: ledgerToDelete.id.toString() },
+                json: { password: deletePassword }
+            });
+            
+            if (res.ok) {
+                setIsDeletePasswordOpen(false);
+                setIsDeleteConfirmOpen(true);
+            } else {
+                toast.error("Password Incorrect");
+            }
+        } catch (err) {
+            toast.error("Error verifying password");
+        }
+    };
+
+    const executeDelete = async () => {
+        if (!ledgerToDelete) return;
+        try {
+            const client = await getClient();
+            const res = await client.api.ledgers[':id'].$delete({
+                param: { id: ledgerToDelete.id.toString() },
+                json: { password: deletePassword || undefined }
+            });
+            
+            if (res.ok) {
+                toast.success("Ledger deleted");
+                await refreshLedgers();
+                setIsDeleteConfirmOpen(false);
+                setLedgerToDelete(null);
+            } else {
+                toast.error("Failed to delete ledger");
+            }
+        } catch (err) {
+            toast.error("Error deleting ledger");
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
             <div className="w-full max-w-4xl space-y-8">
@@ -106,10 +169,23 @@ export default function LedgerSelectionPage() {
                     {ledgers.map(ledger => (
                         <Card key={ledger.id} className="flex flex-col hover:border-primary cursor-pointer transition-colors relative group" onClick={() => handleSelect(ledger)}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Wallet className="h-5 w-5" />
-                                    {ledger.name}
-                                </CardTitle>
+                                <div className="flex justify-between items-start">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Wallet className="h-5 w-5" />
+                                        {ledger.name}
+                                    </CardTitle>
+                                    {ledger.role === 'owner' && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mt-1 -mr-2" 
+                                            onClick={(e) => handleDeleteInit(e, ledger)}
+                                            title="Delete Ledger"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                                 <CardDescription>{ledger.role === 'owner' ? 'Owner' : 'Member'}</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-1">
@@ -156,7 +232,7 @@ export default function LedgerSelectionPage() {
                 </div>
             </div>
 
-            {/* Password Verification Dialog */}
+            {/* Password Verification Dialog for Entry */}
             <Dialog open={verifyPasswordOpen} onOpenChange={setVerifyPasswordOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -177,6 +253,51 @@ export default function LedgerSelectionPage() {
                             <Button type="submit">Enter</Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Password Dialog */}
+            <Dialog open={isDeletePasswordOpen} onOpenChange={setIsDeletePasswordOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Verify Password to Delete</DialogTitle>
+                        <DialogDescription>
+                            Enter password for <strong>{ledgerToDelete?.name}</strong> to continue deletion.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={verifyDeletePassword} className="space-y-4">
+                        <Input
+                            type="password"
+                            value={deletePassword}
+                            onChange={e => setDeletePassword(e.target.value)}
+                            placeholder="Ledger Password"
+                            autoFocus
+                        />
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsDeletePasswordOpen(false)}>Cancel</Button>
+                            <Button type="submit">Next</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="text-destructive">Delete Ledger?</DialogTitle>
+                        <DialogDescription className="space-y-2">
+                            <span className="block">Are you sure you want to delete <strong>{ledgerToDelete?.name}</strong>?</span>
+                            <span className="block font-bold text-red-600">
+                                This action cannot be undone. All data (transactions, assets, stocks) within this ledger will be permanently deleted.
+                            </span>
+                            <span className="block">Please ensure you have backed up any necessary data.</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={executeDelete}>Delete Permanently</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

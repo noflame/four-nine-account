@@ -2,8 +2,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { eq, desc } from 'drizzle-orm';
-import { createDb, ledgers, ledgerUsers } from '@lin-fan/db';
+import { eq, desc, and, inArray } from 'drizzle-orm';
+import { createDb, ledgers, ledgerUsers, transactions, stocks, creditCards, creditCardInstallments, accounts, categories } from '@lin-fan/db';
 import { firebaseAuth, AuthVariables } from '../middleware/auth';
 
 type Bindings = {
@@ -20,6 +20,10 @@ const createLedgerSchema = z.object({
 });
 
 const accessLedgerSchema = z.object({
+    password: z.string().optional()
+});
+
+const deleteLedgerSchema = z.object({
     password: z.string().optional()
 });
 
@@ -97,6 +101,73 @@ app.post('/:id/verify', zValidator('json', accessLedgerSchema), async (c) => {
     }
 
     return c.json({ success: true });
+});
+
+// DELETE /:id - Delete ledger
+app.delete('/:id', zValidator('json', deleteLedgerSchema), async (c) => {
+    const db = createDb(c.env.DB);
+    const user = c.get('user');
+    const ledgerId = parseInt(c.req.param('id'));
+    const { password } = c.req.valid('json');
+
+    // Check if ledger exists
+    const ledger = await db.query.ledgers.findFirst({
+        where: eq(ledgers.id, ledgerId)
+    });
+
+    if (!ledger) return c.json({ error: 'Ledger not found' }, 404);
+
+    // Check if user is owner
+    const userRole = await db.query.ledgerUsers.findFirst({
+        where: and(eq(ledgerUsers.ledgerId, ledgerId), eq(ledgerUsers.userId, user.id))
+    });
+
+    if (!userRole || userRole.role !== 'owner') {
+        return c.json({ error: 'Unauthorized: Only owners can delete ledgers' }, 403);
+    }
+
+    // Verify password if ledger has one
+    if (ledger.passwordHash) {
+        if (!password || ledger.passwordHash !== password) {
+             return c.json({ error: 'Invalid password' }, 403);
+        }
+    }
+
+    try {
+        // Prepare batch operations
+        const steps: any[] = [];
+
+        // 1. Transactions
+        steps.push(db.delete(transactions).where(eq(transactions.ledgerId, ledgerId)));
+
+        // 2. Credit Card Installments (via Credit Cards)
+        // D1 batch doesn't support reading inside. We read first.
+        const cards = await db.select({ id: creditCards.id }).from(creditCards).where(eq(creditCards.ledgerId, ledgerId));
+        if (cards.length > 0) {
+            const cardIds = cards.map(c => c.id);
+            steps.push(db.delete(creditCardInstallments).where(inArray(creditCardInstallments.cardId, cardIds)));
+        }
+
+        // 3. Stocks, Cards, Accounts, Categories
+        steps.push(db.delete(stocks).where(eq(stocks.ledgerId, ledgerId)));
+        steps.push(db.delete(creditCards).where(eq(creditCards.ledgerId, ledgerId)));
+        steps.push(db.delete(accounts).where(eq(accounts.ledgerId, ledgerId)));
+        steps.push(db.delete(categories).where(eq(categories.ledgerId, ledgerId)));
+        
+        // 4. Ledger Users
+        steps.push(db.delete(ledgerUsers).where(eq(ledgerUsers.ledgerId, ledgerId)));
+        
+        // 5. Ledger
+        steps.push(db.delete(ledgers).where(eq(ledgers.id, ledgerId)));
+
+        // Execute batch
+        await db.batch(steps as [any, ...any[]]);
+
+        return c.json({ success: true });
+    } catch (e: any) {
+        console.error("Delete ledger error:", e);
+        return c.json({ error: e.message }, 500);
+    }
 });
 
 export default app;

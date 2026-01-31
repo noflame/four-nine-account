@@ -121,7 +121,7 @@ export default function TransactionsPage() {
                     sortedDates.map(date => (
                         <div key={date} className="space-y-4">
                             <h2 className="text-base font-semibold my-3 sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-2 -my-2">{formatGroupDate(date)}</h2>
-                            {groupedTransactions[date].map((tx) => {
+                            {groupedTransactions[date].map((tx: any) => {
                                 let type: "payment" | "expense" | "income" | "transfer" = "expense";
                                 let amount = tx.amount / 10000;
                                 const isTransfer = tx.sourceAccountId && tx.destinationAccountId;
