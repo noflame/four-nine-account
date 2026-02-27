@@ -66,13 +66,26 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
                     client.api.cards.$get()
                 ]);
 
-                if (accRes.ok) setAccounts(await accRes.json());
+                if (accRes.ok) {
+                    const accs = await accRes.json();
+                    setAccounts(accs);
+                    if (accs.length > 0 && !transactionToEdit) {
+                        setSourceAccountId(accs[0].id);
+                        setDestinationAccountId(accs[0].id);
+                    }
+                }
                 if (catRes.ok) setCategories(await catRes.json());
-                if (cardRes.ok) setCards(await cardRes.json());
+                if (cardRes.ok) {
+                    const crds = await cardRes.json();
+                    setCards(crds);
+                    if (crds.length > 0 && !transactionToEdit) {
+                        setSelectedCardId(crds[0].id);
+                    }
+                }
             };
             fetchData();
         }
-    }, [open, user]);
+    }, [open, user, transactionToEdit]);
 
     // Pre-populate form when editing
     useEffect(() => {
@@ -175,12 +188,24 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
         }
 
         setCategoryId(undefined);
-        setSourceAccountId(undefined);
-        setDestinationAccountId(undefined);
+
+        // When type changes, maintain smartly selected defaults
+        if (accounts.length > 0) {
+            setSourceAccountId(accounts[0].id);
+            setDestinationAccountId(accounts[0].id);
+        } else {
+            setSourceAccountId(undefined);
+            setDestinationAccountId(undefined);
+        }
+
         setPaymentMethod('cash');
-        setSelectedCardId(undefined);
+        if (cards.length > 0) {
+            setSelectedCardId(cards[0].id);
+        } else {
+            setSelectedCardId(undefined);
+        }
         setInstallments(1);
-    }, [type]); // Needs to be careful with this loop
+    }, [type, accounts, cards, transactionToEdit]); // Needs to be careful with this loop
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -190,11 +215,22 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
         try {
             const client = await getClient();
 
+            let finalDescription = description.trim();
+            if (!finalDescription && categoryId) {
+                const category = categories.find(c => c.id === categoryId);
+                if (category) finalDescription = category.name;
+            }
+
+            // Fallback for transfer
+            if (!finalDescription && type === 'transfer') {
+                finalDescription = 'Transfer';
+            }
+
             const payload: any = {
                 type,
                 amount: parseFloat(amount),
                 date,
-                description,
+                description: finalDescription,
                 categoryId,
                 sourceAccountId,
                 destinationAccountId
@@ -318,8 +354,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, transactionTo
                             <Input
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Lunch, computer..."
-                                required
+                                placeholder="Auto from category"
                             />
                         </div>
                     </div>
