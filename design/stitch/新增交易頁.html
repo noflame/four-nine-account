@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>New Transaction - Luminous Ledger</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary": "#316676",
+                        "surface-container-highest": "#dee3e7",
+                        "on-secondary": "#f7f9ff",
+                        "inverse-primary": "#84fde4",
+                        "on-primary": "#e3fff6",
+                        "primary-dim": "#005e51",
+                        "error": "#a83836",
+                        "on-background": "#2d3337",
+                        "primary-fixed": "#7ef7de",
+                        "surface-dim": "#d5dbdf",
+                        "error-container": "#fa746f",
+                        "inverse-surface": "#0c0f10",
+                        "surface-container-high": "#e5e9ec",
+                        "on-error": "#fff7f6",
+                        "primary-fixed-dim": "#6fe9d1",
+                        "on-secondary-container": "#485260",
+                        "primary-container": "#7ef7de",
+                        "tertiary-fixed": "#b6ebfd",
+                        "surface-container": "#ebeef1",
+                        "secondary": "#56606e",
+                        "surface-bright": "#f8f9fb",
+                        "surface-variant": "#dee3e7",
+                        "on-primary-fixed": "#00483e",
+                        "inverse-on-surface": "#9b9d9f",
+                        "secondary-dim": "#4a5462",
+                        "primary": "#006c5d",
+                        "on-error-container": "#6e0a12",
+                        "on-tertiary-fixed-variant": "#2d6272",
+                        "on-tertiary-container": "#225868",
+                        "on-surface": "#2d3337",
+                        "surface": "#f8f9fb",
+                        "on-secondary-fixed-variant": "#525c6a",
+                        "secondary-fixed": "#d9e3f4",
+                        "outline": "#767b7f",
+                        "outline-variant": "#adb3b7",
+                        "on-primary-fixed-variant": "#006859",
+                        "tertiary-container": "#b6ebfd",
+                        "background": "#f8f9fb",
+                        "on-tertiary": "#f1fbff",
+                        "surface-tint": "#006c5d",
+                        "secondary-container": "#d9e3f4",
+                        "on-surface-variant": "#5a6064",
+                        "secondary-fixed-dim": "#cbd5e6",
+                        "tertiary-dim": "#245a69",
+                        "surface-container-low": "#f1f4f7",
+                        "error-dim": "#67040d",
+                        "on-secondary-fixed": "#36404d",
+                        "on-tertiary-fixed": "#054655",
+                        "on-primary-container": "#005d50",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#a9dcef"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-surface text-on-surface font-body min-h-screen flex flex-col">
+    <!-- TopAppBar -->
+    <header
+        class="bg-[#2BB19B]/15 backdrop-blur-lg border-b border-[#2BB19B]/20 docked full-width top-0 sticky z-40 transition-all duration-200">
+        <div class="flex justify-between items-center px-6 py-4 w-full max-w-screen-2xl mx-auto">
+            <div class="flex items-center gap-4">
+                <button
+                    class="text-[#006c5d] dark:text-[#7ef7de] font-label font-medium hover:bg-[#2BB19B]/20 px-3 py-1.5 rounded-xl transition-colors">
+                    Cancel
+                </button>
+            </div>
+            <h1 class="text-[#004d43] dark:text-[#7ef7de] font-manrope font-bold text-lg tracking-tight">
+                New Transaction
+            </h1>
+            <div class="flex items-center gap-4">
+                <button
+                    class="bg-gradient-to-br from-[#006c5d] to-[#004d43] text-white font-label font-semibold px-5 py-1.5 rounded-xl scale-95 active:opacity-80 transition-all duration-200">
+                    Save
+                </button>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content Canvas -->
+    <main class="flex-grow w-full max-w-2xl mx-auto px-6 py-8 pb-32">
+        <form class="">
+            <!-- Amount Section (Numeric Focus) -->
+            <section class="flex flex-col items-center text-center">
+                <label class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-2"
+                    for="amount">Transaction Amount</label>
+                <div class="relative w-full group">
+                    <span
+                        class="absolute left-0 top-1/2 -translate-y-1/2 text-primary font-headline font-extrabold opacity-50 text-2xl">$</span>
+                    <input autofocus=""
+                        class="w-full bg-transparent border-none text-center font-headline font-extrabold text-on-surface focus:ring-0 placeholder:text-surface-container-highest text-4xl md:text-5xl"
+                        id="amount" placeholder="0.00" step="0.01" type="number" />
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button
+                        class="px-4 py-1.5 rounded-full bg-surface-container-low text-secondary font-label text-sm hover:bg-surface-container-high transition-colors"
+                        type="button">Income</button>
+                    <button
+                        class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label text-sm font-bold"
+                        type="button">Expense</button>
+                    <button
+                        class="px-4 py-1.5 rounded-full bg-surface-container-low text-secondary font-label text-sm hover:bg-surface-container-high transition-colors"
+                        type="button">Transfer</button>
+                </div>
+            </section>
+            <!-- Metadata Bento Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Ledger Selection -->
+                <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3">
+                    <label class="block text-on-surface-variant font-label text-[10px] uppercase tracking-widest">Select
+                        Ledger</label>
+                    <div
+                        class="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container hover:shadow-inner transition-all border border-outline-variant/10">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+                            <span class="material-symbols-outlined">account_balance_wallet</span>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="font-headline font-bold text-sm">Personal Checking</p>
+                            <p class="font-label text-xs text-on-surface-variant">...4902</p>
+                        </div>
+                        <span class="material-symbols-outlined text-outline">expand_more</span>
+                    </div>
+                </div>
+                <!-- Date Picker -->
+                <div class="bg-surface-container-lowest p-5 rounded-xl shadow-sm space-y-3">
+                    <label
+                        class="block text-on-surface-variant font-label text-[10px] uppercase tracking-widest">Transaction
+                        Date</label>
+                    <div
+                        class="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg cursor-pointer hover:bg-surface-container transition-all border border-outline-variant/10">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+                            <span class="material-symbols-outlined">calendar_today</span>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="font-headline font-bold text-sm">Today</p>
+                            <p class="font-label text-xs text-on-surface-variant">May 24, 2024</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Category Grid -->
+            <section class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <label
+                        class="text-on-surface-variant font-label text-[10px] uppercase tracking-widest">Category</label>
+                    <button class="text-primary font-label text-xs font-semibold hover:underline" type="button">View
+                        All</button>
+                </div>
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                    <!-- Category Item Active -->
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg transition-transform group-active:scale-90">
+                            <span class="material-symbols-outlined"
+                                style="font-variation-settings: 'FILL' 1;">restaurant</span>
+                        </div>
+                        <span class="font-label text-[10px] font-semibold text-primary">Dining</span>
+                    </button>
+                    <!-- Category Item -->
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all group-active:scale-90">
+                            <span class="material-symbols-outlined">shopping_cart</span>
+                        </div>
+                        <span class="font-label text-[10px] font-medium text-on-surface-variant">Groceries</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all group-active:scale-90">
+                            <span class="material-symbols-outlined">directions_car</span>
+                        </div>
+                        <span class="font-label text-[10px] font-medium text-on-surface-variant">Transport</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all group-active:scale-90">
+                            <span class="material-symbols-outlined">payments</span>
+                        </div>
+                        <span class="font-label text-[10px] font-medium text-on-surface-variant">Bills</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all group-active:scale-90">
+                            <span class="material-symbols-outlined">movie</span>
+                        </div>
+                        <span class="font-label text-[10px] font-medium text-on-surface-variant">Entertainment</span>
+                    </button>
+                    <button class="flex flex-col items-center gap-2 group" type="button">
+                        <div
+                            class="w-14 h-14 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-all group-active:scale-90">
+                            <span class="material-symbols-outlined">add</span>
+                        </div>
+                        <span class="font-label text-[10px] font-medium text-on-surface-variant">Others</span>
+                    </button>
+                </div>
+            </section>
+            <!-- Note Section -->
+            <section class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/5">
+                <label class="block text-on-surface-variant font-label text-[10px] uppercase tracking-widest mb-4">Note
+                    or Memo</label>
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-outline mt-1">notes</span>
+                    <textarea
+                        class="w-full bg-transparent border-none p-0 focus:ring-0 text-sm font-body text-on-surface placeholder:text-outline-variant/50 resize-none"
+                        placeholder="What was this for? (Optional)" rows="2"></textarea>
+                </div>
+            </section>
+        </form>
+    </main>
+    <!-- Suppressed Nav Shell for Focus Mode -->
+    <!-- The BottomNavBar is suppressed as this is a transactional task-focused screen -->
+</body>
+
+</html>
