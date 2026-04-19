@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { useLedger } from "@/components/ledger-provider";
 import { useApiClient } from "@/lib/api";
+import { TopAppBar } from "@/components/dashboard/TopAppBar";
+import { AssetsHero } from "@/components/assets/AssetsHero";
+import { AssetList } from "@/components/assets/AssetList";
+import { AllocationChart } from "@/components/assets/AllocationChart";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Wallet, Landmark, CreditCard } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export default function AssetsPage() {
     const { user, dbUser } = useAuth();
@@ -162,128 +165,116 @@ export default function AssetsPage() {
         }
     };
 
-    const formatCurrency = (amount: number, currency: string) => {
-        return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: currency }).format(amount / 10000);
-    };
+    if (loading) return <div className="p-8 text-center text-muted-foreground">Loading assets...</div>;
 
-    if (loading) return <div>Loading assets...</div>;
+    const totalBalance = accounts.reduce((acc, account) => acc + account.balance, 0);
+    // Fake monthly growth for now since API doesn't return it yet
+    const monthlyGrowth = 2.4; 
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold tracking-tight">Assets</h1>
-                {dbUser?.role !== 'child' && (
-                    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
-                        <DialogTrigger asChild>
-                            <Button className="gap-2">
-                                <Plus className="h-4 w-4" />
-                                Add Account
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>{editingAccount ? 'Edit Account' : 'Add Account'}</DialogTitle>
-                                <DialogDescription>
-                                    {editingAccount ? 'Update account details' : 'Add a new asset account to track'}
-                                </DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>Name</Label>
-                                    <Input
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="e.g. Bank Savings"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Type</Label>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            type="button"
-                                            variant={formData.type === 'cash' ? 'default' : 'outline'}
-                                            onClick={() => setFormData({ ...formData, type: 'cash' })}
-                                            className="flex-1"
-                                        >
-                                            Cash
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant={formData.type === 'bank' ? 'default' : 'outline'}
-                                            onClick={() => setFormData({ ...formData, type: 'bank' })}
-                                            className="flex-1"
-                                        >
-                                            Bank
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant={formData.type === 'digital' ? 'default' : 'outline'}
-                                            onClick={() => setFormData({ ...formData, type: 'digital' })}
-                                            className="flex-1"
-                                        >
-                                            Digital
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Balance</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.balance}
-                                        onChange={e => setFormData({ ...formData, balance: e.target.value })}
-                                        placeholder="0"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Currency</Label>
-                                    <Input
-                                        value={formData.currency}
-                                        onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                                        placeholder="TWD"
-                                        required
-                                    />
-                                </div>
-                                <Button type="submit" className="w-full" disabled={submitting}>
-                                    {submitting ? (editingAccount ? 'Updating...' : 'Adding...') : (editingAccount ? 'Update Account' : 'Add Account')}
-                                </Button>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-                )}
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24">
+            <TopAppBar title="Assets" />
+            
+            <div className="px-4 max-w-7xl mx-auto mt-4 space-y-8">
+                <AssetsHero netWorth={totalBalance} monthlyGrowth={monthlyGrowth} />
+                
+                <AllocationChart accounts={accounts} />
+
+                <div className="mt-8">
+                    <h3 className="text-xl font-bold tracking-tight mb-4">Your Assets</h3>
+                    <AssetList 
+                        accounts={accounts} 
+                        onEdit={handleEdit} 
+                        onDelete={handleDeleteClick} 
+                        totalBalance={totalBalance}
+                        readOnly={dbUser?.role === 'child'}
+                    />
+                </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {accounts.map((account) => (
-                    <Card key={account.id}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                {account.name}
-                            </CardTitle>
-                            {account.type === 'cash' && <Wallet className="h-4 w-4 text-muted-foreground" />}
-                            {account.type === 'bank' && <Landmark className="h-4 w-4 text-muted-foreground" />}
-                            {account.type === 'digital' && <CreditCard className="h-4 w-4 text-muted-foreground" />}
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{formatCurrency(account.balance, account.currency)}</div>
-                            <p className="text-xs text-muted-foreground capitalize">
-                                {account.type} Account
-                            </p>
-                            {dbUser?.role !== 'child' && (
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(account)}>
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(account.id)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+            {dbUser?.role !== 'child' && (
+                <Button 
+                    className="fixed bottom-8 right-8 h-14 w-14 rounded-full shadow-xl transition-transform hover:scale-105 hover:shadow-2xl z-50 flex items-center justify-center p-0"
+                    onClick={() => setIsOpen(true)}
+                >
+                    <Plus className="h-6 w-6" />
+                    <span className="sr-only">Add Account</span>
+                </Button>
+            )}
+
+            <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingAccount ? 'Edit Account' : 'Add Account'}</DialogTitle>
+                        <DialogDescription>
+                            {editingAccount ? 'Update account details' : 'Add a new asset account to track'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Name</Label>
+                            <Input
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g. Bank Savings"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Type</Label>
+                            <div className="flex gap-2">
+                                <Button
+                                    type="button"
+                                    variant={formData.type === 'cash' ? 'default' : 'outline'}
+                                    onClick={() => setFormData({ ...formData, type: 'cash' })}
+                                    className="flex-1"
+                                >
+                                    Cash
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={formData.type === 'bank' ? 'default' : 'outline'}
+                                    onClick={() => setFormData({ ...formData, type: 'bank' })}
+                                    className="flex-1"
+                                >
+                                    Bank
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={formData.type === 'digital' ? 'default' : 'outline'}
+                                    onClick={() => setFormData({ ...formData, type: 'digital' })}
+                                    className="flex-1"
+                                >
+                                    Digital
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Balance</Label>
+                            <Input
+                                type="number"
+                                value={formData.balance}
+                                onChange={e => setFormData({ ...formData, balance: e.target.value })}
+                                placeholder="0"
+                                required
+                                step="any"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Currency</Label>
+                            <Input
+                                value={formData.currency}
+                                onChange={e => setFormData({ ...formData, currency: e.target.value })}
+                                placeholder="TWD"
+                                required
+                            />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={submitting}>
+                            {submitting ? (editingAccount ? 'Updating...' : 'Adding...') : (editingAccount ? 'Update Account' : 'Add Account')}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent>
