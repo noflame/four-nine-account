@@ -1,7 +1,15 @@
-export function ExpenseAnalysisCard() {
+export function ExpenseAnalysisCard({ monthlyExpenses }: { monthlyExpenses: number }) {
+    const expenses = monthlyExpenses / 10000;
+    
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="font-headline font-bold text-lg text-on-surface mb-6">Expense Analysis</h3>
+            
+            <div className="mb-4">
+                <p className="text-sm text-on-surface-variant uppercase tracking-wider font-bold">Total Expenses This Month</p>
+                <p className="text-3xl font-black font-headline text-on-surface">${expenses.toLocaleString()}</p>
+            </div>
+
             <div className="flex items-center justify-between">
                 <div className="relative w-32 h-32 flex-shrink-0">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">

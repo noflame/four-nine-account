@@ -1,4 +1,9 @@
-export function CreditLimitCard() {
+export function CreditLimitCard({ totalCreditLimit, usedCredit }: { totalCreditLimit: number, usedCredit: number }) {
+    const limit = totalCreditLimit / 10000;
+    const used = usedCredit / 10000;
+    const available = Math.max(0, limit - used);
+    const usedPercentage = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
@@ -7,8 +12,8 @@ export function CreditLimitCard() {
                         <span className="material-symbols-outlined text-indigo-600">credit_card</span>
                     </div>
                     <div>
-                        <h3 className="font-headline font-bold text-on-surface">Platinum Card</h3>
-                        <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mt-0.5">**** 4231</p>
+                        <h3 className="font-headline font-bold text-on-surface">Total Credit Cards</h3>
+                        <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mt-0.5">All Cards</p>
                     </div>
                 </div>
                 <button className="p-2 -mr-2 text-on-surface-variant hover:text-on-surface hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors">
@@ -20,18 +25,18 @@ export function CreditLimitCard() {
                 <div className="flex justify-between items-end">
                     <div>
                         <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Available Limit</p>
-                        <p className="text-2xl font-black font-headline text-on-surface">$12,450</p>
+                        <p className="text-2xl font-black font-headline text-on-surface">${available.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
                         <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-1">Total</p>
-                        <p className="text-sm font-bold text-on-surface-variant">$20,000</p>
+                        <p className="text-sm font-bold text-on-surface-variant">${limit.toLocaleString()}</p>
                     </div>
                 </div>
 
                 <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: '35%' }}></div>
+                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${usedPercentage}%` }}></div>
                 </div>
-                <p className="text-xs font-semibold text-on-surface-variant text-right">35% used</p>
+                <p className="text-xs font-semibold text-on-surface-variant text-right">{usedPercentage}% used</p>
             </div>
         </div>
     );

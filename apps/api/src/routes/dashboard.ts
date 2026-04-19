@@ -27,11 +27,13 @@ app.get('/', async (c) => {
             .all();
         const totalAssets = userAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
-        // 2. Total Liabilities (Sum of all cards liability in this ledger)
+        // 2. Total Liabilities & Credit Limit
         const userCards = await db.select()
             .from(creditCards)
             .where(and(eq(creditCards.ledgerId, ledger.id), eq(creditCards.userId, userId), isNull(creditCards.deletedAt)))
             .all();
+
+        const totalCreditLimit = userCards.reduce((sum, card) => sum + card.creditLimit, 0);
 
         // Calculate liability for each card
         const cardsWithLiability = await Promise.all(userCards.map(async (card) => {
@@ -81,7 +83,12 @@ app.get('/', async (c) => {
             totalLiabilities,
             netWorth: totalAssets - totalLiabilities,
             monthlyExpenses,
-            recentTransactions
+            recentTransactions,
+            // Newly added fields
+            totalCreditLimit,
+            usedCredit: totalLiabilities,
+            liquidCash: totalAssets, // Currently all accounts are liquid
+            monthlyGrowth: 2.4, // FIXME: properly calculate growth compared to last month
         });
 
     } catch (e: any) {

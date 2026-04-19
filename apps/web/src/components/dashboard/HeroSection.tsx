@@ -1,4 +1,4 @@
-export function HeroSection() {
+export function HeroSection({ netWorth, monthlyGrowth, liquidCash }: { netWorth: number, monthlyGrowth: number, liquidCash: number }) {
     return (
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary to-surface-tint p-8 text-on-primary shadow-xl mt-4 mb-8">
             <div className="relative z-10 flex flex-col gap-6">
@@ -9,16 +9,15 @@ export function HeroSection() {
                     <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-2xl font-semibold opacity-90">$</span>
                         <span className="text-5xl font-black tracking-tight font-headline">
-                            24,562
+                            {(netWorth / 10000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        <span className="text-2xl font-medium opacity-90">.00</span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full w-fit">
-                        <span className="material-symbols-outlined text-sm">trending_up</span>
-                        <span className="text-sm font-bold">+2.4%</span>
+                        <span className="material-symbols-outlined text-sm">{monthlyGrowth >= 0 ? 'trending_up' : 'trending_down'}</span>
+                        <span className="text-sm font-bold">{monthlyGrowth > 0 ? '+' : ''}{monthlyGrowth}%</span>
                     </div>
                     <span className="text-sm text-on-primary/80">vs last month</span>
                 </div>
