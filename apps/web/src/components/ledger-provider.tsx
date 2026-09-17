@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './auth-provider';
 import { hc } from 'hono/client';
 import { AppType } from '@lin-fan/api';
@@ -38,11 +38,22 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
     const [ledgers, setLedgers] = useState<Ledger[]>([]);
     const [currentLedgerId, setCurrentLedgerId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const ledgerRequestVersion = useRef(0);
 
     const apiUrl = import.meta.env.VITE_API_URL || '/';
 
     const fetchLedgers = async () => {
-        if (!user) return;
+        const requestVersion = ++ledgerRequestVersion.current;
+
+        if (!user) {
+            setLedgers([]);
+            setCurrentLedgerId(null);
+            localStorage.removeItem('ledgerId');
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
         try {
             const token = await user.getIdToken();
             const client = hc<AppType>(apiUrl, {
@@ -52,21 +63,31 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
             const res = await client.api.ledgers.$get();
             if (res.ok) {
                 const data = await res.json();
+                if (requestVersion !== ledgerRequestVersion.current) return;
+
                 setLedgers(data);
 
-                // If currentLedgerId is set but not in list (revoked?), clear it
-                if (currentLedgerId) {
-                    const stillExists = data.find((l: Ledger) => l.id === currentLedgerId);
+                setCurrentLedgerId((selectedLedgerId) => {
+                    const stillExists = selectedLedgerId && data.some(
+                        (ledger: Ledger) => ledger.id === selectedLedgerId
+                    );
+
                     if (!stillExists) {
-                        setCurrentLedgerId(null);
                         localStorage.removeItem('ledgerId');
+                        return null;
                     }
-                }
+
+                    return selectedLedgerId;
+                });
             }
         } catch (err) {
-            console.error(err);
+            if (requestVersion === ledgerRequestVersion.current) {
+                console.error(err);
+            }
         } finally {
-            setIsLoading(false);
+            if (requestVersion === ledgerRequestVersion.current) {
+                setIsLoading(false);
+            }
         }
     };
 
@@ -82,7 +103,10 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
         if (user) {
             fetchLedgers();
         } else {
+            ledgerRequestVersion.current += 1;
             setLedgers([]);
+            setCurrentLedgerId(null);
+            localStorage.removeItem('ledgerId');
             setIsLoading(false);
         }
     }, [user]);
