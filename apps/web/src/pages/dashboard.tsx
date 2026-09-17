@@ -12,7 +12,7 @@ export default function DashboardPage() {
     const { currentLedger } = useLedger();
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['dashboard-data'],
+        queryKey: ['dashboard-data', currentLedger?.id],
         queryFn: async () => {
             const client = await getClient();
             const res = await client.api.dashboard.$get();
