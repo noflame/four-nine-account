@@ -42,7 +42,15 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
     const apiUrl = import.meta.env.VITE_API_URL || '/';
 
     const fetchLedgers = async () => {
-        if (!user) return;
+        if (!user) {
+            setLedgers([]);
+            setCurrentLedgerId(null);
+            localStorage.removeItem('ledgerId');
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
         try {
             const token = await user.getIdToken();
             const client = hc<AppType>(apiUrl, {
@@ -54,14 +62,18 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
                 const data = await res.json();
                 setLedgers(data);
 
-                // If currentLedgerId is set but not in list (revoked?), clear it
-                if (currentLedgerId) {
-                    const stillExists = data.find((l: Ledger) => l.id === currentLedgerId);
+                setCurrentLedgerId((selectedLedgerId) => {
+                    const stillExists = selectedLedgerId && data.some(
+                        (ledger: Ledger) => ledger.id === selectedLedgerId
+                    );
+
                     if (!stillExists) {
-                        setCurrentLedgerId(null);
                         localStorage.removeItem('ledgerId');
+                        return null;
                     }
-                }
+
+                    return selectedLedgerId;
+                });
             }
         } catch (err) {
             console.error(err);
@@ -83,6 +95,8 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
             fetchLedgers();
         } else {
             setLedgers([]);
+            setCurrentLedgerId(null);
+            localStorage.removeItem('ledgerId');
             setIsLoading(false);
         }
     }, [user]);

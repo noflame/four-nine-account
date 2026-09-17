@@ -15,14 +15,14 @@ import { Toaster } from "@/components/ui/sonner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
-    const { currentLedgerId, isLoading: ledgerLoading } = useLedger();
+    const { currentLedger, isLoading: ledgerLoading } = useLedger();
     const location = useLocation();
 
     if (loading || ledgerLoading) return <div>Loading...</div>;
     if (!user) return <Navigate to="/login" />;
 
     // If no ledger selected and not on selection page, redirect
-    if (!currentLedgerId && location.pathname !== '/ledgers') {
+    if (!currentLedger && location.pathname !== '/ledgers') {
         return <Navigate to="/ledgers" />;
     }
 
@@ -69,5 +69,4 @@ function App() {
 }
 
 export default App;
-
 

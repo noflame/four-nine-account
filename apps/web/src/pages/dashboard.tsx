@@ -5,9 +5,11 @@ import { ExpenseAnalysisCard } from "@/components/dashboard/ExpenseAnalysisCard"
 import { CreditLimitCard } from "@/components/dashboard/CreditLimitCard";
 import { useQuery } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/api";
+import { useLedger } from "@/components/ledger-provider";
 
 export default function DashboardPage() {
     const { getClient } = useApiClient();
+    const { currentLedger } = useLedger();
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['dashboard-data'],
@@ -18,7 +20,8 @@ export default function DashboardPage() {
                 throw new Error('Failed to fetch dashboard data');
             }
             return await res.json();
-        }
+        },
+        enabled: Boolean(currentLedger),
     });
 
     if (isLoading) {
