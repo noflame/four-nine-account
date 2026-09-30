@@ -25,16 +25,16 @@ export function useApiClient() {
     // But hc returns a proxy. We can wrap the fetch?
     // Hono client allows passing headers.
 
-    const getClient = async () => {
+    const getClient = async (ledgerId?: number) => {
         const currentToken = token || (user ? await user.getIdToken() : null);
-        const ledgerId = localStorage.getItem('ledgerId');
+        const selectedLedgerId = ledgerId?.toString() ?? localStorage.getItem('ledgerId');
 
         const headers: Record<string, string> = {};
         if (currentToken) {
             headers['Authorization'] = `Bearer ${currentToken}`;
         }
-        if (ledgerId) {
-            headers['X-Ledger-Id'] = ledgerId;
+        if (selectedLedgerId) {
+            headers['X-Ledger-Id'] = selectedLedgerId;
         }
 
         return hc<AppType>(apiUrl, { headers }) as any; // Type workaround
