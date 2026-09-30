@@ -14,7 +14,7 @@ export default function DashboardPage() {
     const { data, isLoading, error } = useQuery({
         queryKey: ['dashboard-data', currentLedger?.id],
         queryFn: async () => {
-            const client = await getClient();
+            const client = await getClient(currentLedger!.id);
             const res = await client.api.dashboard.$get();
             if (!res.ok) {
                 throw new Error('Failed to fetch dashboard data');
