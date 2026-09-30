@@ -1,4 +1,4 @@
-export function HeroSection({ netWorth, monthlyGrowth, liquidCash }: { netWorth: number, monthlyGrowth: number, liquidCash: number }) {
+export function HeroSection({ netWorth, monthlyGrowth }: { netWorth: number, monthlyGrowth: number, liquidCash: number }) {
     return (
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary to-surface-tint p-8 text-on-primary shadow-xl mt-4 mb-8">
             <div className="relative z-10 flex flex-col gap-6">

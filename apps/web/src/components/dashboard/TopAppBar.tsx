@@ -8,10 +8,10 @@ export function TopAppBar({ title }: TopAppBarProps) {
     const { currentLedger } = useLedger();
     return (
         <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl docked full-width top-0 z-50 sticky shadow-[0_32px_64px_-4px_rgba(45,51,55,0.06)]">
-            <div className="grid grid-cols-3 items-center px-6 py-4 w-full max-w-7xl mx-auto">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-3 items-center px-6 py-4 w-full max-w-7xl mx-auto">
                 {/* LEFT: Ledger Name */}
-                <div className="flex items-center gap-3">
-                    <span className="font-headline text-lg font-bold tracking-tight text-primary dark:text-primary-fixed whitespace-nowrap">
+                <div className="flex min-w-0 items-center gap-3">
+                    <span className="font-headline text-lg font-bold tracking-tight text-primary dark:text-primary-fixed truncate">
                         {currentLedger?.name || "Luminous Ledger"}
                     </span>
                 </div>

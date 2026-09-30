@@ -14,7 +14,7 @@ export function BottomNavBar() {
 
     return (
         <nav className="fixed bottom-0 left-0 w-full z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.04)] no-border">
-            <div className="flex justify-around items-center px-4 pt-3 pb-8 max-w-7xl mx-auto">
+            <div className="grid grid-cols-5 items-stretch px-2 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] max-w-7xl mx-auto">
                 {navItems.map((item) => {
                     const isActive = location.pathname === item.path;
 
@@ -23,7 +23,7 @@ export function BottomNavBar() {
                             key={item.name}
                             to={item.path}
                             className={clsx(
-                                "flex flex-col items-center justify-center px-3 py-1.5 transition-all duration-200",
+                                "flex min-w-0 flex-col items-center justify-center px-1 py-2 transition-all duration-200",
                                 isActive
                                     ? "bg-teal-50 dark:bg-teal-900/30 text-primary dark:text-primary-fixed rounded-2xl active:scale-90"
                                     : "text-slate-400 dark:text-slate-500 hover:text-primary-dim"
@@ -35,7 +35,7 @@ export function BottomNavBar() {
                             >
                                 {item.icon}
                             </span>
-                            <span className="font-headline text-[11px] font-semibold uppercase tracking-wider mt-1">
+                            <span className="font-headline text-[10px] sm:text-[11px] font-semibold mt-1">
                                 {item.name}
                             </span>
                         </Link>

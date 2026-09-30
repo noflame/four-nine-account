@@ -11,12 +11,12 @@ export default function Layout() {
     const [isTransactionOpen, setIsTransactionOpen] = useState(false);
 
     return (
-        <div className="flex flex-col min-h-screen bg-surface font-manrope text-on-surface">
+        <div className="flex flex-col min-h-dvh bg-surface font-manrope text-on-surface">
             {/* Top App Bar */}
             <TopAppBar />
 
             {/* Main Content Area */}
-            <main className="flex-1 pb-32">
+            <main className="min-w-0 flex-1 pb-[calc(11rem+env(safe-area-inset-bottom))]">
                 <Outlet />
             </main>
 
